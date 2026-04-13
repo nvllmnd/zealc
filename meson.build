@@ -36,7 +36,10 @@ inc = include_directories(
 
 memory_lib = static_library(
   'zmemory',
-  files('src/memory/cstr.c'),
+  files(
+    'src/memory/cstr.c',
+    'src/memory/alloc.c',
+  ),
   include_directories: inc,
   dependencies: dependencies,
   install: true,

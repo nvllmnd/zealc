@@ -21,11 +21,7 @@ struct cstr {
   union {
     struct Small {
       u8 len;
-      char mem[SMALL_BUF_SIZE];
-      /// padding byte, should always be set to 0 so
-      /// that this char buffer always ends with a 0 byte to terminate the
-      /// character buffer
-      u8 null_pad;
+      char mem[SMALL_BUF_SIZE + 1]; // +1 for null terminator
     } buf;
     prefix_str heap;
   };
@@ -59,9 +55,8 @@ static inline bool cstr_is_small(const cstr* self) {
 
 static inline usize cstr_len(const cstr* self) {
   if (self->is_large) {
-     const i32* prefix_end = (const i32*)self->heap;
-     const i32* prefix = prefix_end - 1;
-     const usize len = cast(usize, *prefix);   
+     const i32* str_begin = pcast(i32, self->heap);
+     const usize len = cast(usize, str_begin[-1]);   
      return len;
   }
 
@@ -78,6 +73,8 @@ static inline const char* cstr_as_str(const cstr* self) {
   return self->buf.mem;
 
 }
+
+
 
 /// Creates a new [cstr] from given null-terminated c-style string.
 [[nodiscard("Must use returned cstr! While this type may not always allocate, its still best practice to treat it as if it did allocate")]]

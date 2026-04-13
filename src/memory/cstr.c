@@ -8,7 +8,7 @@ static void init_small_cstr(cstr *self, const char *string, usize len) {
   assert(len <= SMALL_BUF_SIZE);
   self->buf.len = cast(u8, len);
   strncpy(self->buf.mem, string, len);
-  self->buf.null_pad = 0;
+  self->buf.mem[SMALL_BUF_SIZE] = 0;
 }
 
 
@@ -84,7 +84,7 @@ CStrError cstr_init_small(cstr *self, const char *string) {
   if (string_len <= SMALL_BUF_SIZE) {
     self->buf.len = cast(u8, string_len);
     strncpy(self->buf.mem, string, string_len);
-    self->buf.null_pad = 0;
+    self->buf.mem[SMALL_BUF_SIZE] = 0;
     return CStrError__Ok;
   }
 
