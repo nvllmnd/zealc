@@ -55,6 +55,7 @@ dkms.conf
 *.dwo
 
 subprojects/mimalloc-3.2.7
+subprojects/hedley-15
 subprojects/packagecache
 
 .cache/

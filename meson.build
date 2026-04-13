@@ -19,7 +19,11 @@ add_global_arguments('-Wno-gnu-statement-expression', language: 'c')
 mimalloc_proj = subproject('mimalloc')
 mimalloc_dep = mimalloc_proj.get_variable('mi_dep')
 
+
+hedley_dep = dependency('hedley')
+
 dependencies = [
+  hedley_dep,
   mimalloc_dep
 ]
 
