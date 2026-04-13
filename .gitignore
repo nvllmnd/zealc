@@ -56,3 +56,5 @@ dkms.conf
 
 subprojects/mimalloc-3.2.7
 subprojects/packagecache
+
+.cache/

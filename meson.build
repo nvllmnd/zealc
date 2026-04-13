@@ -1,0 +1,41 @@
+project(
+  'zeal',
+  'c',
+  meson_version : '>= 1.3.0',
+  version : files('.version'),
+  default_options : [
+    'c_std=c23,c2y,c2x',
+    'werror=true',
+    'b_ndebug=if-release',
+    'default_library=static',
+    'warning_level=3'
+  ],
+)
+
+add_global_arguments('-Wno-static-in-inline', language: 'c')
+add_global_arguments('-Wno-gnu-statement-expression', language: 'c')
+
+
+mimalloc_proj = subproject('mimalloc')
+mimalloc_dep = mimalloc_proj.get_variable('mi_dep')
+
+dependencies = [
+  mimalloc_dep
+]
+
+inc = include_directories(
+  'include',
+  'include/extern',
+  'include/zeal',
+)
+
+exe = executable(
+  'zeal',
+  'src/main.c',
+  include_directories: inc,
+  c_pch: 'pch/zeal_pch.h',
+  dependencies : dependencies,
+  install : true,
+)
+
+test('basic', exe)
