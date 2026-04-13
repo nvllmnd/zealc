@@ -33,6 +33,43 @@ inc = include_directories(
   'include/zeal',
 )
 
+
+memory_lib = static_library(
+  'zmemory',
+  files('src/memory/cstr.c'),
+  include_directories: inc,
+  dependencies: dependencies,
+  install: true,
+  pic: true,
+  c_pch: 'pch/zeal_pch.h',
+)
+
+memory_dep = declare_dependency(
+  include_directories: inc,
+  link_with: memory_lib
+)
+
+
+dependencies += memory_dep
+
+
+ast_lib = static_library(
+  'zast',
+  files('src/ast/expr.c'),
+  include_directories: inc,
+  dependencies: dependencies,
+  install: true,
+  pic: true,
+  c_pch: 'pch/zeal_pch.h'
+)
+
+ast_dep = declare_dependency(
+  include_directories: inc,
+  link_with: ast_lib
+)
+
+dependencies += ast_dep
+
 exe = executable(
   'zeal',
   'src/main.c',
