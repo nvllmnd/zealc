@@ -25,14 +25,4 @@ typedef double f64;
 typedef long double f128;
 typedef typeof(void*) voidptr;
 
-#define cmp_max(a, b) ({ \
-  __typeof__(a) _a = (a); \
-  __typeof__(b) _b = (b); \
-  _a > _b ? _a : _b; \
-}) \
 
-#define cmp_min(a, b) ({ \
-  __typeof__(a) _a = (a); \
-  __typeof__(b) _b = (b); \
-  _a < _b ? _a : _b; \
-}) \

@@ -1,4 +1,5 @@
 #include "memory/cstr.h"
+#include "core_types.h"
 #include "mimalloc.h"
 #include "mimalloc/internal.h"
 #include <assert.h>
@@ -39,6 +40,13 @@ static prefix_str prefix_str_new(const char* string, usize len) {
 
 }
 
+
+static void prefix_str_set_len(prefix_str ps, usize new_len) {
+  i32* prefix = pcast(i32, ps);
+  prefix = &prefix[-1];
+
+  *prefix = cast(i32, new_len);
+}
 
 static void init_large_cstr(cstr* self, const char* string, usize len) {
   assert(len > SMALL_BUF_SIZE);
@@ -100,13 +108,99 @@ cstr cstr_small_new(const char *string) {
   return self;
 
 }
-void cstr_free(cstr self) {
+void cstr_free(cstr* self) {
   // We only have to call free if this is a large
   // cstr that has been allocated on the heap
-  if (self.is_large) {
-    i32 *prefix_end = pcast(i32, self.heap);
+  if (self->is_large) {
+    i32 *prefix_end = pcast(i32, self->heap);
     i32 *prefix = prefix_end - 1;
     void *data = pcast(void, prefix);
     mi_free(data);
+
+    self->heap = nullptr;
+    // *self = (cstr){};
+  }
+}
+
+bool cstr_shrink_to(cstr* self, usize smaller_size) {
+  const usize len = cstr_len(self);  
+  // we were given a bogus, insignificant value, bail out
+  if (smaller_size >= len) {
+    return false;
+  }
+
+  if (self->is_large) {
+    prefix_str ps = self->heap;
+    prefix_str_set_len(ps,  smaller_size);
+    ps[len] = 0; // trailing null character
+  } else {
+    self->buf.len = cast(u8, smaller_size);
+    self->buf.mem[self->buf.len] = 0; // trailing null character
+  }
+
+  return true;
+  
+}
+
+cstr cstr_concat(const cstr* left, const cstr* right) {
+  const usize llen = cstr_len(left);
+  const usize rlen = cstr_len(right);
+
+  const char* l = cstr_as_str(left);
+  const char* r = cstr_as_str(right);
+
+  const usize capacity = (llen + rlen);
+
+  cstr self = cstr_large_with_capacity(capacity);
+  strncpy(self.heap, l, llen);
+  strncpy(&self.heap[llen], r, rlen);
+  self.heap[capacity] = 0;
+
+  return self;
+}
+
+cstr cstr_move_concat(cstr *left, cstr *right) {
+  cstr self = cstr_concat(left,  right);
+  cstr_free(left);
+  cstr_free(right);
+  return self;
+}
+
+void cstr_append_string(cstr* self, const char* s, usize slen) {
+
+  const usize len = cstr_len(self);
+  const usize next_size = len + slen;
+
+  if (self->is_large) {
+    const usize size = next_size + sizeof(i32) + 1;
+    u8* mem = mi_recalloc(pcast(void, self->heap), size, 1);
+    assert(nullptr != mem);
+
+    i32* prefix = pcast(i32, mem);
+    *prefix = next_size;
+
+    prefix_str ps = pcast(char, prefix + 1);
+    // copy over our appended string
+    strncpy(&ps[len], s, slen);
+
+    self->heap = ps;
+
+  } else {
+    // we have to move our string from the stack onto the heap, appending @param(s)
+
+    if (next_size >= SMALL_BUF_SIZE) {
+      // copy our current string along side arg string
+      char string[next_size] = {};
+      strncpy(string, self->buf.mem, self->buf.len);
+      strncpy(&string[self->buf.len], s, slen);
+      // shove that into a prefix_string on the heap
+      prefix_str ps = prefix_str_new(string, next_size);
+      // Set our flags now that this cstr has changed its inner union type
+      self->is_large = true;
+      // Zero out old static storage
+      self->buf = (Small){};
+      // Our  string's new home!
+      self->heap = ps;
+    }
   }
 }
