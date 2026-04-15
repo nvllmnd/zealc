@@ -54,8 +54,14 @@ dkms.conf
 # debug information files
 *.dwo
 
-subprojects/mimalloc-3.2.7
-subprojects/hedley-15
-subprojects/packagecache
+# subprojects/mimalloc-3.2.7
+# subprojects/hedley-15
+# subprojects/packagecache
+
+subprojects/*
+!subprojects/*.wrap
+!subprojects/.wraplock
 
 .cache/
+
+download/
