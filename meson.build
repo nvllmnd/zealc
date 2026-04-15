@@ -58,7 +58,10 @@ dependencies += memory_dep
 
 ast_lib = static_library(
   'zast',
-  files('src/ast/expr.c'),
+  files(
+    'src/ast/expr.c',
+    'src/ast/parser.c',
+  ),
   include_directories: inc,
   dependencies: dependencies,
   install: true,

@@ -146,8 +146,8 @@ cstr cstr_concat(const cstr* left, const cstr* right) {
   const usize llen = cstr_len(left);
   const usize rlen = cstr_len(right);
 
-  const char* l = cstr_as_str(left);
-  const char* r = cstr_as_str(right);
+  const char* l = cstr_as_ptr(left);
+  const char* r = cstr_as_ptr(right);
 
   const usize capacity = (llen + rlen);
 
@@ -198,9 +198,23 @@ void cstr_append_string(cstr* self, const char* s, usize slen) {
       // Set our flags now that this cstr has changed its inner union type
       self->is_large = true;
       // Zero out old static storage
-      self->buf = (Small){};
+      self->buf = (CStrSmall){};
       // Our  string's new home!
       self->heap = ps;
     }
   }
+}
+
+sslice cstr_slice(const cstr* self, isize from, isize to) {
+  const isize len = cstr_len(self);
+  const isize slice_len = to - from;
+
+  // We were given bogus values for indicies (negative from, or a to that is less that from, ect...)
+  if (slice_len > len || slice_len < 0) {
+    return (sslice){};
+  }
+
+  const char* string = cstr_as_ptr(self);
+  const char* begin = &string[from];
+  return sslice_new(.begin = begin, .len = slice_len);
 }

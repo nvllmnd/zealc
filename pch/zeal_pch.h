@@ -16,6 +16,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "hedley.h"
+#include "attributes.h"
 
 
