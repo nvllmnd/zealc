@@ -42,17 +42,16 @@
 // NOTE: Some Hedley aliases for A E S T H E T I C S and
 // conveinience
 
-/// 
-#define PURE_FUNC \
-/*The function has no side-effects, and the return value depends only on the
-  parameters and/or global variables.*/ \
-HEDLEY_PURE
+///
+#define PURE_FUNC                                                              \
+  /*The function has no side-effects, and the return value depends only on the \
+    parameters and/or global variables.*/                                      \
+  HEDLEY_PURE
 
-
-#define CONST_FUNC \
-/* The function has no side-effects, and the return value depends only on the
-   parameters. Note that pointer arguments are not allowed.*/ \
-HEDLEY_CONST
+#define CONST_FUNC                                                              \
+  /* The function has no side-effects, and the return value depends only on the \
+     parameters. Note that pointer arguments are not allowed.*/                 \
+  HEDLEY_CONST
 
 /// Pointer does not alias (no other pointer points to same region of memory)
 /// aka this pointer is 'unique'
@@ -161,3 +160,15 @@ HEDLEY_CONST
 ///  statement. Without this, some compilers may think you accidentally omitted
 ///  a "break;" and emit a diagnostic.
 #define FALLTHROUGH HEDLEY_FALL_THROUGH
+
+#define METHOD                                                                                                        \
+  /* alias for PARAMS_NONNULL(1), which ensures that the first parameter (self, for a method function), is always     \
+   * non-null */                                                                                                      \
+  /*Use this for functions intended to be used like methods for types, where those functions take a pointer to struct \
+   * as thier first parameter */                                                                                      \
+  PARAMS_NONNULL(1)
+
+#define RECEIVER                                                                                                   \
+  /* same as [METHOD_FN]. Use this for functions intended to be used like methods for types, where those functions \
+   * take a pointer to struct as thier first parameter  */                                                         \
+  METHOD
