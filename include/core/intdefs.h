@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bits/floatn.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -22,7 +23,13 @@ typedef isize poffset_t;
 
 typedef float f32;
 typedef double f64;
-typedef long double f128;
+typedef _Float128 f128;
+typedef long double ldouble;
+
 typedef typeof(void*) voidptr;
+
+
+#define bint(N) _BitInt(N)
+#define ubint(N) unsigned bint(N)
 
 

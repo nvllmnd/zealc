@@ -9,7 +9,10 @@
 
 #include "hedley.h"
 
+
+
 #if defined(__clang__) && __clang__
+
 
 // HEDLEY_PRAGMA(clang diagnostic push);
 
@@ -32,7 +35,7 @@
 #define CLANG_NON_NULL_BEGIN
 #define CLANG_NON_NULL_END
 
-#endif
+#endif // if defined(__clang__) && __clang__
 
 // #pragma clang assume_nonnull begin
 // #if defined(__clang__) && __clang__
@@ -53,6 +56,37 @@
      parameters. Note that pointer arguments are not allowed.*/                 \
   HEDLEY_CONST
 
+#define MALLOC_FUNC                                                                                                 \
+  /*Inform the compiler that the pointer returned by this function does not alias any other pointer, and that there \
+   * are no pointers to valid objects in the storage pointed to. */                                                 \
+  HEDLEY_MALLOC
+
+#define FORMAT_FUNC                                                                                              \
+  /*                                                                                                             \
+   Inform the compiler/analyzer that the function takes a printf-style format string, so that it can check the   \
+  arguments.                                                                                                     \
+                                                                                                               \ \
+  string_idx                                                                                                     \
+      Index (starts from 1, left-to-right) of the format string parameter.                                       \
+  first_to_check                                                                                                 \
+      Index of the first user-supplied parameter to check.                                                       \
+  */                                                                                                             \
+HEDLEY_PRINTF_FORMAT
+
+#define BITFLAG_CAST                                                                \
+  /*example: const enum Foo foo = HEDLEY_FLAGS_CAST(enum Foo, FOO_BAR | FOO_BAZ);*/ \
+  HEDLEY_FLAGS_CAST
+
+#define BITFLAG_ENUM                                    \
+  /*Annotate an enumeration as containing bit flags. */ \
+  /* example: */                                        \
+  /*enum Foo {*/                                        \
+  /*        FOO_BAR = 1 << 0,  */                       \
+  /*        FOO_BAZ = 1 << 1,  */                       \
+  /*       FOO_QUX = 1 << 2   */                        \
+  /* } BITFLAG_ENUM;*/                                  \
+  HEDLEY_FLAGS
+
 /// Pointer does not alias (no other pointer points to same region of memory)
 /// aka this pointer is 'unique'
 #define NO_ALIAS HEDLEY_RESTRICT
@@ -61,11 +95,21 @@
 ///  would be a bad idea.
 #define FORCE_INLINE HEDLEY_ALWAYS_INLINE
 
+#define INLINE_ALWAYS FORCE_INLINE
+
 /// Tell the compiler that the function will never throw a C++ exception
 ///    .Note that this can improve performance even in C mode.Use only if you're
 ///    sure your function will never call a function which throws a C++
 ///    exception, even indirectly.
 #define NOTHROW HEDLEY_NO_THROW
+
+#define NORETURN                                                                                                     \
+  /*Function is does not return. This is important for the compiler to be able to reason about later events; for     \
+   * example, if you call a no-return function if a variable is NULL, then the compiler can assume that the variable \
+   * is non-NULL in the remainder of the function, which allows you to pass it to a function as a non-NULL           \
+   * parameter.*/                                                                                                    \
+  HEDLEY_NO_RETURN
+
 
 /// Tell the compiler that the pointer will not escape the function call. For
 /// more information, see the documentation for clang's noescape attribute.
@@ -172,3 +216,7 @@
   /* same as [METHOD_FN]. Use this for functions intended to be used like methods for types, where those functions \
    * take a pointer to struct as thier first parameter  */                                                         \
   METHOD
+
+#define LIKELY HEDLEY_LIKELY
+
+#define UNLIKELY HEDLEY_UNLIKELY

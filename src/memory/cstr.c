@@ -1,7 +1,7 @@
 #include "memory/cstr.h"
+#include "attributes.h"
 #include "core_types.h"
 #include "mimalloc.h"
-#include "mimalloc/internal.h"
 #include <assert.h>
 #include <string.h>
 
@@ -48,6 +48,7 @@ static void prefix_str_set_len(prefix_str ps, usize new_len) {
   *prefix = cast(i32, new_len);
 }
 
+PARAMS_NONNULL(1, 2)
 static void init_large_cstr(cstr* self, const char* string, usize len) {
   assert(len > SMALL_BUF_SIZE);
 
@@ -57,8 +58,10 @@ static void init_large_cstr(cstr* self, const char* string, usize len) {
   
   self->heap = string_begin;
 }
+
+
 cstr cstr_new(const char *string) {
-  const usize len = strlen(string);
+  const usize len = stringlen(string);
   return cstr_from_slice(string, len);
 }
 
@@ -87,7 +90,7 @@ cstr cstr_from_slice(const char *string, usize len) {
 }
 
 CStrError cstr_init_small(cstr *self, const char *string) {
-  const usize string_len = strlen(string);
+  const usize string_len = stringlen(string);
 
   if (string_len <= SMALL_BUF_SIZE) {
     self->buf.len = cast(u8, string_len);
@@ -100,9 +103,9 @@ CStrError cstr_init_small(cstr *self, const char *string) {
 }
 
 cstr cstr_small_new(const char *string) {
-  const usize slen = strlen(string);
+  const usize slen = stringlen(string);
 
-  const usize len = cmp_min(slen, SMALL_BUF_SIZE);
+  const usize len = min(slen, SMALL_BUF_SIZE);
   cstr self = {};
   init_small_cstr(&self, string, len);
   return self;
@@ -123,7 +126,7 @@ void cstr_free(cstr* self) {
 }
 
 bool cstr_shrink_to(cstr* self, usize smaller_size) {
-  const usize len = cstr_len(self);  
+  const usize len = cstr_len(*self);  
   // we were given a bogus, insignificant value, bail out
   if (smaller_size >= len) {
     return false;
@@ -143,8 +146,8 @@ bool cstr_shrink_to(cstr* self, usize smaller_size) {
 }
 
 cstr cstr_concat(const cstr* left, const cstr* right) {
-  const usize llen = cstr_len(left);
-  const usize rlen = cstr_len(right);
+  const usize llen = cstr_len(*left);
+  const usize rlen = cstr_len(*right);
 
   const char* l = cstr_as_ptr(left);
   const char* r = cstr_as_ptr(right);
@@ -168,7 +171,7 @@ cstr cstr_move_concat(cstr *left, cstr *right) {
 
 void cstr_append_string(cstr* self, const char* s, usize slen) {
 
-  const usize len = cstr_len(self);
+  const usize len = cstr_len(*self);
   const usize next_size = len + slen;
 
   if (self->is_large) {
@@ -206,7 +209,7 @@ void cstr_append_string(cstr* self, const char* s, usize slen) {
 }
 
 sslice cstr_slice(const cstr* self, isize from, isize to) {
-  const isize len = cstr_len(self);
+  const isize len = cstr_len(*self);
   const isize slice_len = to - from;
 
   // We were given bogus values for indicies (negative from, or a to that is less that from, ect...)

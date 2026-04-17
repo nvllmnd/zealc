@@ -1,6 +1,9 @@
 #pragma once
 
+#include <math.h>
+
 #include "intdefs.h"
+
 #define array(T, N)                                                    \
   /* conveinence for declaring static array of type (T) of size (N) */ \
   __typeof__(T[N])
@@ -29,9 +32,6 @@
    * buffer (char*) */                                                    \
   type_eq((s), char*)
 
-#define cmp_min(a, b) ((a < b ? a : b))
-#define cmp_max(a, b) ((a > b ? a : b))
-
 #define cast(T, _src)                                                          \
   /* casts expression _src to be of type T */                                  \
   /* for a version of this macro that is specialized for casting pointers, see \
@@ -43,6 +43,39 @@
   /* for a version of this macro that just does general casts between any \
    * given type and an expresion; see: [cast]*/                           \
   (cast(__typeof__(T*), (_ptr)))
+
+
+
+
+ 
+
+#define min(a, b)                      \
+  (cast(__typeof__((a)), _Generic((a), \
+            i8: fmin,                  \
+            u8: fmin,                  \
+            i16: fmin,                 \
+            u16: fmin,                 \
+            i32: fmin,                 \
+            u32: fmin,                 \
+            i64: fmin,                 \
+            u64: fmin,                 \
+            f32: fmin,                 \
+            f64: fmin,                 \
+            f128: fminl)(a, b)))
+
+#define max(a, b)                      \
+  (cast(__typeof__((a)), _Generic((a), \
+            i8: fmax,                  \
+            u8: fmax,                  \
+            i16: fmax,                 \
+            u16: fmax,                 \
+            i32: fmax,                 \
+            u32: fmax,                 \
+            i64: fmax,                 \
+            u64: fmax,                 \
+            f32: fmax,                 \
+            f64: fmax,                 \
+            f128: fmaxl)(a, b)))
 
 #define is_null(p)                                    \
   /* checks if given pointer (p) is equal to null. */ \
@@ -56,12 +89,12 @@
   /* check if given pointer (p) is good. (converts to a non-negative, non-zero integer) */                             \
   /* shorthand for [alloc_result] for checking pointers returned by [Allocator] interface struct [AllocVTable] methods \
    */                                                                                                                  \
-  (((signed long long)(p)) > 0)
+  (((isize)(p)) > 0)
 
-#define clamp(x, min, max)                                             \
+#define clamp(x, _min, _max)                                           \
   /* clamps a value values (x) to be between (min) and (max) */        \
   /* i.e.: 'clamp(-1, 0, 5) == 0;', or 'clamp(650, 0, 100) == 100;' */ \
-  (cmp_max((min), cmp_min((x), (max))))
+  (max((_min), min((x), (_max))))
 
 // NOTE: I kind of like these 2 macros in a guilty pleasure kind of way lmao...
 //  i might one day use them, but idk its kinda ugg and seems too distant to C for

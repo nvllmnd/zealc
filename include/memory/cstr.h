@@ -63,7 +63,7 @@ static inline isize stringlen(const char* string) { return str_len(string, STRLE
 /// (or by casting this to a i32* and then indexing that i32* with -1,
 /// i.e.:
 ///     ((i32*)some_prefix_str)[-1]; // gives you the length of this prefix string as an i32
-///    
+///
 /// )
 typedef char* prefix_str;
 
@@ -119,19 +119,20 @@ static inline bool cstr_is_heap_allocated(const cstr* self) { return self->is_la
 
 /// Gets the [cstr] inner string's length
 PURE_FUNC
-static inline usize cstr_len(const cstr* self) {
-  if (self->is_large) {
-    const i32* str_begin = pcast(i32, self->heap);
+static inline usize cstr_len(cstr self) {
+  if (self.is_large) {
+    const i32* str_begin = pcast(i32, self.heap);
     const usize len = cast(usize, str_begin[-1]);
     return len;
   }
 
-  const usize len = cast(usize, self->buf.len);
+  const usize len = cast(usize, self.buf.len);
   return len;
 }
 
 /// Returns a [const char*] pointer to beginning of inner string
 PURE_FUNC
+METHOD
 static inline const char* cstr_as_ptr(const cstr* self) {
   if (self->is_large) {
     return self->heap;
@@ -279,20 +280,11 @@ typedef struct sslice sslice;
 #define sslice_new(...) ((sslice){__VA_ARGS__})
 #define sslice_empty() (sslice_new())
 
-#define sslice_static_new(literal)                                                   \
-  /* Creates a new instance of [sslice] on the stack that points to string           \
-   literals, which reside in constant static readonly memory                         \
-   Also does some addition (rudimentary) validation to ensure given string           \
-   really is a string literal, which all reside in constant static readonly */       \
-  ({                                                                                 \
-    constexpr const bool IS_STRING = is_string((literal));                           \
-    static_assert(IS_STRING, "Can only pass string literals to sslice_static_new!"); \
-    constexpr const usize _LEN = sizeof((literal));                                  \
-    sslice_new(.begin = (literal), .len = _LEN);                                     \
-  })
+#define sslice_static_new(static_str)                                      \
+  /* Creates a new instance of [sslice] on the stack that points to string \
+   literals, which reside in constant static readonly memory*/             \
+  (sslice_new(.begin = (static_str), .len = (sizeof((static_str)))))
 
-
-  
 PURE_FUNC
 static inline sslice sslice_from_str(const char* string) {
   const isize len = stringlen(string);
@@ -320,7 +312,10 @@ static inline sslice sslice_from_range(const char* string, isize from, isize to)
 ///
 PURE_FUNC
 static inline i32 sslice_cmp(sslice left, sslice right) {
-  return strncmp(left.begin, right.begin, cmp_min(left.len, right.len));
+
+  if (left.begin == nullptr) { return -1; }
+  if (right.begin == nullptr) { return 1; }
+  return strncmp(left.begin, right.begin, min(left.len, right.len));
 }
 
 /// Checks if 2 [sslice]s are exaclty equal.
@@ -358,25 +353,33 @@ sslice cstr_slice(const cstr* self, isize from, isize to);
 
 /// Returns a new [sslice] pointing to the inner string of
 /// self [cstr]
+/// 
+/// WARN: The pointer in the [sslice] returned by this function is
+/// only valid for as long as the given pointer is in scope! (careful for small, stack [cstrs])
+///
+/// 
+/// This function requires taking a pointer to [cstr], because
+/// if this function took [cstr] by copy, this function could possible return
+/// a pointer to stack memory that is no longer valid after this fuction returns
+/// (cstr is small, gets copied onto this functions new stack frame, the this function returns a pointer to that
+/// buffer on the stack, buffer goes out of scope and pointer is immediately invalid, UB follows!)
 static inline sslice cstr_as_slice(const cstr* self) {
-  const isize len = cstr_len(self);
+  const isize len = cstr_len(*self);
   const char* begin = cstr_as_ptr(self);
 
   return sslice_new(.begin = begin, .len = len);
 }
-
 
 /// A [cstr] variant of [sslice_cmp].
 /// Takes the [sslice] of both given [ctr]s and forwards call to [sslice_cmp]
 ///
 /// For more details, see: [sslice_cmp]
 PURE_FUNC
-static inline i32 cstr_cmp(const cstr* left, const cstr* right) {
-  const sslice l = cstr_as_slice(left);
-  const sslice r = cstr_as_slice(right);
+static inline i32 cstr_cmp(cstr left, cstr right) {
+  const sslice l = cstr_as_slice(&left);
+  const sslice r = cstr_as_slice(&right);
   return sslice_cmp(l, r);
 }
-
 
 /// A [cstr] variant of [sslice_eq].
 /// Takes the [sslice] of both given [ctr]s and forwards call to [sslice_eq].
@@ -384,12 +387,10 @@ static inline i32 cstr_cmp(const cstr* left, const cstr* right) {
 /// For more details, see: [sslice_eq]
 PURE_FUNC
 static inline bool cstr_eq(const cstr* left, const cstr* right) {
-
   const sslice l = cstr_as_slice(left);
-  const sslice r = cstr_as_slice(right);  
+  const sslice r = cstr_as_slice(right);
   return sslice_eq(l, r);
 }
-
 
 /// A [cstr] variant of [sslice_matches].
 /// Takes the [sslice] of both given [ctr]s and forwards call to [sslice_matches]
@@ -397,9 +398,7 @@ static inline bool cstr_eq(const cstr* left, const cstr* right) {
 /// For more details, see: [sslice_matches]
 PURE_FUNC
 static inline bool cstr_matches(const cstr* left, const cstr* right) {
-
   const sslice l = cstr_as_slice(left);
-  const sslice r = cstr_as_slice(right);  
+  const sslice r = cstr_as_slice(right);
   return sslice_matches(l, r);
 }
-
