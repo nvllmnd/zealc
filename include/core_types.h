@@ -102,3 +102,8 @@
 //  this codebase
 //  #define deref(p) (*(p))
 //  #define ref &
+//
+
+
+#define UNUSED(v) ((void)v)
+

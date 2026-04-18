@@ -33,3 +33,21 @@ typedef typeof(void*) voidptr;
 #define ubint(N) unsigned bint(N)
 
 
+static constexpr const i8 I8_MAX = INT8_MAX;
+static constexpr const i8 I8_MIN = INT8_MIN;
+static constexpr const u8 U8_MAX = UINT8_MAX;
+static constexpr const i16 I16_MAX = INT16_MAX;
+static constexpr const u16 U16_MAX = UINT16_MAX;
+
+static constexpr const i32 I32_MIN = INT32_MIN;
+static constexpr const i32 I32_MAX = INT32_MAX;
+static constexpr const u32 U32_MAX = UINT32_MAX;
+static constexpr const i64 I64_MIN = INT64_MIN;
+static constexpr const i64 I64_MAX = INT64_MAX;
+static constexpr const u64 U64_MAX = UINT64_MAX;
+
+static constexpr const isize ISIZE_MIN = PTRDIFF_MIN;
+static constexpr const isize ISIZE_MAX = PTRDIFF_MAX;
+
+static constexpr const usize USIZE_MAX = SIZE_MAX;
+

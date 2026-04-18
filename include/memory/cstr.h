@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -15,7 +16,7 @@ static constexpr usize SMALL_BUF_SIZE = 14;
   /* Upper bound used by [stringlen] as the max_len parameter to [str_len] */ \
   /* NOTE: I decided to make this a macro so that it can be configurable to   \
    * each build (-D compiler flag)*/                                          \
-  SIZE_MAX
+  (INT32_MAX - 1)
 
 #endif  // STRLEN_UPPER_BOUND
 
@@ -53,7 +54,7 @@ static inline isize str_len(const char* string, isize max_len) {
 }
 
 /// Same as [stringlen], forwards @param (string) to [stringlen], passing
-/// [SIZE_MAX] as the second parameter
+/// [STRLEN_UPPER_BOUND]([INT32_MAX -1]) as the second parameter
 PURE_FUNC
 static inline isize stringlen(const char* string) { return str_len(string, STRLEN_UPPER_BOUND); }
 
@@ -273,7 +274,7 @@ static inline cstr priv_cstr_token_impl(const char* s, usize len) {
 ///
 struct sslice {
   const char* begin;
-  isize len;
+  i32 len;
 };
 typedef struct sslice sslice;
 
@@ -292,6 +293,8 @@ static inline sslice sslice_from_str(const char* string) {
 }
 
 PURE_FUNC
+/// creates a new [sslice] from given string that points to the range provided by @param (from) and @param (to)
+/// such that the new slice points to string[from..to]
 static inline sslice sslice_from_range(const char* string, isize from, isize to) {
   const isize slen = stringlen(string);
   const isize slice_len = to - from;

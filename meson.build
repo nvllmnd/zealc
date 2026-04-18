@@ -4,7 +4,7 @@ project(
   meson_version : '>= 1.3.0',
   version : files('.version'),
   default_options : [
-    'c_std=c23,c2y,c2x',
+    'c_std=c23,c2y,c2x,gnu2x,gnu23,gnu2y',
     'werror=true',
     'b_ndebug=if-release',
     'default_library=static',
@@ -22,9 +22,14 @@ mimalloc_dep = mimalloc_proj.get_variable('mi_dep')
 
 hedley_dep = dependency('hedley')
 
+
+unity_dep = dependency('unity')
+
+
 dependencies = [
   hedley_dep,
-  mimalloc_dep
+  mimalloc_dep,
+  unity_dep
 ]
 
 inc = include_directories(
@@ -97,7 +102,7 @@ ast_dep = declare_dependency(
 dependencies += ast_dep
 
 exe = executable(
-  'zeal',
+  'zealc',
   'src/main.c',
   include_directories: inc,
   c_pch: 'pch/zeal_pch.h',
@@ -105,4 +110,7 @@ exe = executable(
   install : true,
 )
 
-test('basic', exe)
+
+subdir('tests')
+
+# test('basic', exe)

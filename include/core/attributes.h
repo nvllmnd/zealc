@@ -220,3 +220,8 @@ HEDLEY_PRINTF_FORMAT
 #define LIKELY HEDLEY_LIKELY
 
 #define UNLIKELY HEDLEY_UNLIKELY
+
+#define RETURNS_ERROR [[nodiscard("Ignoring returned error value can cause unexpected results!")]]
+
+#define RETURNS_RESOURCE [[nodiscard("Returned value is either a pointer or contains a pointer! Ignoring value would cause memory leak! Caller is expected to call appropriate free function on returned value")]]
+

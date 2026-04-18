@@ -12,9 +12,21 @@
 
 /// Formats arguments int a new [cstr] using
 /// a [printf] style format string
+///
+/// Returns empty string in case of formatting error
+///
 FORMAT_FUNC(1, 2)
-[[nodiscard("There is a good chance that the returned formatted string needs to be freed! Possible Memory Leak!")]]
+RETURNS_RESOURCE
 cstr format_string(const char* fmt, ...);
+
+typedef enum FormatError {
+  Format__Error = -1,
+  Format__Ok = 0
+} FormatError;
+
+FORMAT_FUNC(3,4)
+RETURNS_ERROR
+FormatError format_with(char* dst, isize dst_len, const char* fmt, ...);
 
 #define fdprint(fd, fmt, ...) (fprintf(fd, fmt __VA_OPT__(, ) __VA_ARGS__))
 

@@ -131,9 +131,10 @@ struct Allocator {
 };
 typedef struct Allocator Allocator;
 
+
+CONST_FUNC
 /// Gets a [Allocator] interface struct for the
 /// global allocator [mi_malloc]/[mi_free] and friends
-CONST_FUNC
 Allocator global_allocator(void);
 
 /// Invokes a given [Allocator] interface struct's inner vtable to call [allocate]!

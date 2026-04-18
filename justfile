@@ -26,15 +26,6 @@ version_patch := `echo "$(git rev-list --count HEAD)"`
 version_full :=  version_major + "." + version_minor + "." + version_patch 
 
 
-# Force a sync of this projects version number.
-@sync-version:
-	rm .version; \
-	echo "{{version_full}}" >> .version; \
-	echo "{{project_name}} version synced to v{{version_full}}!";
-
-
-
-# [script('node')]
 # [extension(".js")]
 # bun-hello:
 #    let name = "Jackie";
@@ -44,6 +35,13 @@ version_full :=  version_major + "." + version_minor + "." + version_patch
 @default: 
 	echo "{{project_name}}. Version: {{version_full}}" 
 	just --list
+
+
+# Force a sync of this projects version number.
+@sync-version:
+	rm .version; \
+	echo "{{version_full}}" >> .version; \
+	echo "{{project_name}} version synced to v{{version_full}}!";
 
 
 # Prints project project version
@@ -151,6 +149,10 @@ alias r := rebuild
 alias build := build-debug
 alias run := run-debug 
 
+alias test := test-debug
+alias td := test-debug
+alias tr := test-release
+
 
 # Prints/Shows all current aliases defined for this justfile
 @alias:
@@ -167,3 +169,6 @@ alias run := run-debug
 	echo "cfgd := reconfig-debug"; \
 	echo "cfg  := reconfig-release"; 
 	echo "build := build-debug"; \
+	echo "test  := test-debug"; \
+	echo "td    := test-debug";\
+	echo "tr    := test-release";
