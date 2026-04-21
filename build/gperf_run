@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [[ -f "./src/ast/keywords.c" ]]; then
+  rm "./src/ast/keywords.c";
+fi
+
+gperf --struct-type --omit-struct-type --slot-name=id --compare-strncmp --multiple-iterations=100 --switch=1 --readonly-tables --enum --pic --random --includes --lookup-function-name=lookup_keyword ./build/keywords.gperf --output-file=./src/ast/keywords.c
+

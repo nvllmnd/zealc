@@ -1,14 +1,31 @@
 #pragma once
 
+#include "intdefs.h"
 
+#include "attributes.h"
+#include "memory/cstr.h"
 
+struct Cursor {
+  /// index into whatever buffer this cursor is iterating over
+  i32 i;
+  /// row of item being iterated over
+  i32 row;
+  /// column of item being iterated over
+  i32 col;
+};
+typedef struct Cursor Cursor;
+
+/// asdf
+typedef Cursor SourceLocation;
 /// Constant used to shift TokenTypes joined together, so that the assigned enum is indeed unique to this enum set
 /// i.e.:
 /// ```c
 /// typedef enum TokenType {
 ///     ...
-///     Token__BangEq = (Token__Bang | Token__Eq) << 8 // Shift 8 to the left to completely skip over the possible asicc range
-//                                                     // (0-255) though i believe 0-128 is enough, so i need to verify...
+///     Token__BangEq = (Token__Bang | Token__Eq) << 8 // Shift 8 to the left to completely skip over the possible asicc
+///     range
+//                                                     // (0-255) though i believe 0-128 is enough, so i need to
+//                                                     verify...
 ///     ...
 /// } TokenType;
 /// ```
@@ -16,18 +33,43 @@
 /// const bool has_bang = ((token_type >> _TOKENC_SHIFT) & Token__Bang) == Token__Bang;
 ///
 ///
-#include "memory/cstr.h"
-constexpr const i32 _TOKENC_SHIFT_VAL = 8;
-constexpr const i32 _TOKENC_KEYWORDS_START = (1 << 16);
 
-#define _TOKENC_JOIN(join_set) (((join_set)) << (_TOKENC_SHIFT_VAL))
+static constexpr const i32 _TOKENC_KEYWORDS_START = (1 << 16);
+static constexpr const i32 _TOKENC_GLYPHS_START = (1 << 12);
 
+// #define _TOKENC_KW2(a, b) (((a) << 24) | ((b) << 20))
+// #define _TOKENC_KW3(a, b, c) (((a) << 24) | ((b) << 20) | ((c) << 16))
+// #define _TOKENC_KW4(a, b, c, d) (((a) << 24) | ((b) << 20) | ((c) << 16) | ((d) << 12))
+// #define _TOKENC_KW5(a, b, c, d, e) (((a) << 24) | ((b) << 20) | ((c) << 16) | ((d) << 12) | ((e) << 8))
+// #define _TOKENC_KW6(a, b, c, d, e, f) (((a) << 24) | ((b) << 20) | ((c) << 16) | ((d) << 12) | ((e) << 8) | ((f) <<
+// 4))
 
+// #define _TOKENC_KW7(a, b, c, d, e, f, g) \
+//   (((a) << 24) | ((b) << 20) | ((c) << 16) | ((d) << 12) | ((e) << 8) | ((f) << 4) | (g) )
+
+// // #define _TOKENC_KW8(a, b, c, d, e, f, g, h) \
+// //   (((a) << 28) | ((b) << 24) | ((c) << 20) | ((d) << 16) | ((e) << 12) | ((f) << 8) | ((g) << 4) | (h))
+
+// #define _TOKENC_KEYWORD2(kw) (_TOKENC_KW2((#kw)[0], (#kw)[1]))
+// #define _TOKENC_KEYWORD3(kw) (_TOKENC_KW3((#kw)[0], (#kw)[1], (#kw)[2]))
+// #define _TOKENC_KEYWORD4(kw) (_TOKENC_KW3((#kw)[0], (#kw)[1], (#kw)[2], (#kw)[3]))
+// #define _TOKENC_KEYWORD5(kw) (_TOKENC_KW3((#kw)[0], (#kw)[1], (#kw)[2], (#kw)[3], (#kw)[4]))
+// #define _TOKENC_KEYWORD6(kw) (_TOKENC_KW3((#kw)[0], (#kw)[1], (#kw)[2], (#kw)[3], (#kw)[4], (#kw)[5]))
+// #define _TOKENC_KEYWORD7(kw) (_TOKENC_KW3((#kw)[0], (#kw)[1], (#kw)[2], (#kw)[3], (#kw)[4], (#kw)[5], (#kw)[6]))
 
 typedef enum TokenType : i32 {
-  Token__Identifier = 0,
+  /// A variant of this enum was passed to [token_type_glpyh_string] that
+  /// falls out of range of the multi-character glyhps
+  Token__CannotGetStringOfNonGlyph = -2,
+  /// A variant of this enum was passed to [token_type_keyword_string] that
+  /// falls out of range of the keyword TokenType constants
+  Token__CannotGetStringOfNonKeyword = -1,
+  /// No Token has been parsed. Lexer encountered an error, or has reached EOF
+  Token__None = 0,
+  Token__Identifier = 1,
+  Token__LiteralStart,
   /// true/false
-  Token__Bool,
+  // Token__Bool,
   /// any non-floating-point integer
   Token__Int,
   /// Any floating point integer
@@ -36,8 +78,9 @@ typedef enum TokenType : i32 {
   Token__String,
   /// :colon_prefixed_unique_identifiers
   Token__Rune,
+  Token__LiteralEnd,
 
-  Token__OpenBrace = '{', 
+  Token__OpenBrace = '{',
   Token__CloseBrace = '}',
   Token__OpenParen = '(',
   Token__CloseParen = ')',
@@ -52,68 +95,163 @@ typedef enum TokenType : i32 {
   Token__Star = '*',
   Token__Minus = '-',
   Token__Plus = '+',
+
+  Token__UnaryUnderscore = '_',
   Token__Eq = '=',
-  /// *=
-  Token__StarEq = _TOKENC_JOIN(Token__Star | Token__Eq),
-  /// &=
-  Token__AmpersandEq = _TOKENC_JOIN(Token__Ampersand | Token__Eq),
-  /// %=
-  Token__PercentEq = _TOKENC_JOIN(Token__Percent | Token__Eq),
 
-
-  /// !=
-  Token__BangEq = _TOKENC_JOIN(Token__Bang | Token__Eq), 
-  /// ==
-  Token__DoubleEq = _TOKENC_JOIN(Token__Eq | Token__Eq),
-  Token__PlusEq = _TOKENC_JOIN(Token__Plus | Token__Eq),
-
-  Token__MinusEq = _TOKENC_JOIN(Token__Minus | Token__Eq),
-  Token__QMark = '?',
-  Token__DblQMark = _TOKENC_JOIN(Token__QMark | Token__QMark),
-  Token__ForwardSlash = '/',
-  Token__DblForwardSlash = _TOKENC_JOIN(Token__ForwardSlash | Token__ForwardSlash),
-
-  Token__ForwardSlashEq = _TOKENC_JOIN(Token__ForwardSlash | Token__Eq),
-  Token__BackSlash = '\\',
-  Token__DblBackSlash = _TOKENC_JOIN(Token__BackSlash | Token__BackSlash), 
-  Token__Semicolon = ';',
-  Token__Colon = ':',
-  Token__DblColon = _TOKENC_JOIN(Token__Colon | Token__Colon),
-  Token__Lt = '<',
-  Token__LtEq = _TOKENC_JOIN(Token__Lt | Token__Eq),
-  Token__Gt = '>',
-  Token__GtEq = _TOKENC_JOIN(Token__Gt | Token__Eq),
+  Token__Pipe = '|',
   Token__Comma = ',',
   Token__Period = '.',
-  Token__Elipses = _TOKENC_JOIN(Token__Period | Token__Period | Token__Period),
-  Token__Pipe = '|',
-  Token__DblPipe = _TOKENC_JOIN(Token__Pipe | Token__Pipe),
-  Token__UnaryUnderscore = '_',
-  /// ()
-  Token__EmptyParen = _TOKENC_JOIN(Token__OpenParen | Token__CloseParen),
-  /// []
-  Token__EmptyBracket = _TOKENC_JOIN(Token__OpenBracket | Token__CloseBracket),
-  /// {}
-  Token__EmptyBrace = _TOKENC_JOIN(Token__OpenBrace | Token__CloseBrace),
-  /// ->
-  Token__ArrowRight = _TOKENC_JOIN(Token__Minus | Token__Gt),
-  /// <-
-  Token__ArrowLeft = _TOKENC_JOIN(Token__Lt | Token__Minus),
-  /// =>
-  Token__FatArrow = _TOKENC_JOIN(Token__Eq | Token__Gt),
+  Token__Gt = '>',
+  Token__Lt = '<',
+  Token__Semicolon = ';',
+  Token__Colon = ':',
+  Token__BackSlash = '\\',
+  Token__ForwardSlash = '/',
+  Token__QMark = '?',
 
-  Token__Comment = Token__DblForwardSlash,
+  Token__GlyphStart = _TOKENC_GLYPHS_START,
+
+  /// *=
+  Token__StarEq,  
+  /// &=
+  Token__AmpersandEq,  
+  /// %=
+  Token__PercentEq,  
+
+  /// !=
+  Token__BangEq,  
+  /// ==
+  Token__DoubleEq,  
+  Token__PlusEq,    
+
+  Token__MinusEq,  
+
+  Token__DblQMark,  
+
+  Token__DblForwardSlash,  
+
+  Token__ForwardSlashEq,  
+
+  Token__DblBackSlash,  
+
+  Token__DblColon,  
+
+  Token__LtEq,  
+
+  Token__GtEq,  
+
+  Token__Elipses,  
+
+  Token__DblPipe,  
+
+  /// ()
+  Token__EmptyParen,  
+  /// []
+  Token__EmptyBracket,  
+  /// {}
+  Token__EmptyBrace,  
+  /// ->
+  Token__ArrowRight,  
+  /// <-
+  Token__ArrowLeft,  
+  /// =>
+  Token__FatArrow,
+
+  Token__GlyphsEnd,
+  Token__GlyphsCount = (Token__GlyphsEnd - Token__GlyphStart) - 1,
+
+  Token__Comment,  // Token__DblForwardSlash,
 
   Token__KeywordsStart = _TOKENC_KEYWORDS_START,
 
+  
+  // NOTE: putting true/false as keywords, as its easier to map to
+  // strings in this group as opposed to specific one for bool true/false literals
+  Token__True,
+  Token__False,
+
+
+  Token__Let,
+  Token__If,
+  Token__Else,
+  Token__Mut,
+  Token__When,
+  Token__Fn,
+  Token__Struct,
+  Token__Trait,
+  Token__Impl,
+  Token__And,
+  Token__Or,
+  Token__Return,
+  Token__Self,
+  Token__Const,
+  Token__Loop,
+  Token__For,
+  Token__While,
+  Token__Break,
+  Token__Match,
+  Token__Continue,
+  Token__Pub,
+  Token__Ref,
+  Token__Error,
+  Token__Enum,
+  Token__Type,
+  Token__Await,
+  Token__Comptime,
+  Token__Static,
+  Token__Mod,
+  Token__Macro,
+  Token__Derive,
+  Token__Dyn,
+  Token__Default,
+  Token__Sizeof,
+  Token__KeywordsEnd,
+  Token__KeywordCount = (Token__KeywordsEnd - Token__KeywordsStart) - 1,
+  // Token__,
+  // Token__,
+
 } TokenType;
 
+
+// struct Keyword { i32 id; TokenType type; };
+CONST_FUNC
+bool tokentype_is_keyword(TokenType self);
+
+CONST_FUNC
+bool tokentype_is_glyph(TokenType self);
+
+
+
+/// Lex/Parse Token. If token is a integer or boolean literal, it will
+/// be kept in the literal field union. If TokenType is Token__Integer, Token__Float, Token__Boolean, or
+/// Token__Character then you can get the parsed literal from the literal union field
+///
+/// String and Rune literals are not parsed, but you can access it through the
+/// lexeme field [sslice].
 struct Token {
   TokenType type;
   sslice lexeme;
 
+  /// Location in source where this token is located
+  SourceLocation loc;
+
+  /// integer or floating point literals. if any.
+  /// It would be redundant to add an sslice field here for
+  /// string literals, as that can be found on the lexeme field.
+  /// if TokenType == Token__String, then lexeme will point to the first '"'
+  /// and contain length up to the trailing '"'
+  ///
+  /// Same deal for runes, lexeme field will point to prefix ':'
+  ///
+  /// That way caller can decide if they want to copy out the lexeme
+  /// if it will be needed after parsing in the resulting AST
+  union {
+    bool boolean;
+    char character;
+    i64 integer;
+    f64 fp;
+    // string literals can be found in lexeme field
+  } literal;
 };
 typedef struct Token Token;
-
-
-

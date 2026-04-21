@@ -1,0 +1,406 @@
+/* ANSI-C code produced by gperf version 3.3 */
+/* Command-line: gperf --struct-type --omit-struct-type --slot-name=id --compare-strncmp --multiple-iterations=100 --switch=1 --readonly-tables --enum --pic --random --includes --lookup-function-name=lookup_keyword --output-file=./src/ast/keywords.c ./build/keywords.gperf  */
+/* Computed positions: -k'1,3' */
+
+#if !((' ' == 32) && ('!' == 33) && ('"' == 34) && ('#' == 35) \
+      && ('%' == 37) && ('&' == 38) && ('\'' == 39) && ('(' == 40) \
+      && (')' == 41) && ('*' == 42) && ('+' == 43) && (',' == 44) \
+      && ('-' == 45) && ('.' == 46) && ('/' == 47) && ('0' == 48) \
+      && ('1' == 49) && ('2' == 50) && ('3' == 51) && ('4' == 52) \
+      && ('5' == 53) && ('6' == 54) && ('7' == 55) && ('8' == 56) \
+      && ('9' == 57) && (':' == 58) && (';' == 59) && ('<' == 60) \
+      && ('=' == 61) && ('>' == 62) && ('?' == 63) && ('A' == 65) \
+      && ('B' == 66) && ('C' == 67) && ('D' == 68) && ('E' == 69) \
+      && ('F' == 70) && ('G' == 71) && ('H' == 72) && ('I' == 73) \
+      && ('J' == 74) && ('K' == 75) && ('L' == 76) && ('M' == 77) \
+      && ('N' == 78) && ('O' == 79) && ('P' == 80) && ('Q' == 81) \
+      && ('R' == 82) && ('S' == 83) && ('T' == 84) && ('U' == 85) \
+      && ('V' == 86) && ('W' == 87) && ('X' == 88) && ('Y' == 89) \
+      && ('Z' == 90) && ('[' == 91) && ('\\' == 92) && (']' == 93) \
+      && ('^' == 94) && ('_' == 95) && ('a' == 97) && ('b' == 98) \
+      && ('c' == 99) && ('d' == 100) && ('e' == 101) && ('f' == 102) \
+      && ('g' == 103) && ('h' == 104) && ('i' == 105) && ('j' == 106) \
+      && ('k' == 107) && ('l' == 108) && ('m' == 109) && ('n' == 110) \
+      && ('o' == 111) && ('p' == 112) && ('q' == 113) && ('r' == 114) \
+      && ('s' == 115) && ('t' == 116) && ('u' == 117) && ('v' == 118) \
+      && ('w' == 119) && ('x' == 120) && ('y' == 121) && ('z' == 122) \
+      && ('{' == 123) && ('|' == 124) && ('}' == 125) && ('~' == 126))
+/* The character set is not based on ISO-646.  */
+#error "gperf generated tables don't work with this execution character set. Please report a bug to <bug-gperf@gnu.org>."
+#endif
+
+#line 1 "./build/keywords.gperf"
+
+	#include "ast/token.h"
+	#include "ast/symbol.h"
+#include <string.h>
+/* maximum key range = 40, duplicates = 0 */
+
+#ifdef __GNUC__
+__inline
+#else
+#ifdef __cplusplus
+inline
+#endif
+#endif
+static unsigned int
+hash (register const char *str, register size_t len)
+{
+  static const unsigned char asso_values[] =
+    {
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 24,  9,  3,
+      15,  6,  0, 15, 42,  6, 15, 42,  6,  0,
+      24, 21,  6, 12,  0,  0,  3, 21,  0, 21,
+      42, 42, 42, 30, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+      42, 42, 42, 42, 42, 42, 42
+    };
+  register unsigned int hval = len;
+
+  switch (hval)
+    {
+      default:
+        hval += asso_values[(unsigned char)str[2]+1];
+#if (defined __cplusplus && (__cplusplus >= 201703L || (__cplusplus >= 201103L && defined __clang__ && __clang_major__ + (__clang_minor__ >= 9) > 3))) || (defined __STDC_VERSION__ && __STDC_VERSION__ >= 202000L && ((defined __GNUC__ && __GNUC__ >= 10) || (defined __clang__ && __clang_major__ >= 9)))
+      [[fallthrough]];
+#elif (defined __GNUC__ && __GNUC__ >= 7) || (defined __clang__ && __clang_major__ >= 10)
+      __attribute__ ((__fallthrough__));
+#endif
+      /*FALLTHROUGH*/
+      case 2:
+      case 1:
+        hval += asso_values[(unsigned char)str[0]];
+        break;
+    }
+  return hval;
+}
+
+struct stringpool_t
+  {
+    char stringpool_str0[sizeof("fn")];
+    char stringpool_str1[sizeof("for")];
+    char stringpool_str2[sizeof("self")];
+    char stringpool_str3[sizeof("false")];
+    char stringpool_str4[sizeof("struct")];
+    char stringpool_str5[sizeof("true")];
+    char stringpool_str6[sizeof("if")];
+    char stringpool_str7[sizeof("mod")];
+    char stringpool_str8[sizeof("enum")];
+    char stringpool_str9[sizeof("error")];
+    char stringpool_str10[sizeof("pub")];
+    char stringpool_str11[sizeof("else")];
+    char stringpool_str12[sizeof("break")];
+    char stringpool_str13[sizeof("static")];
+    char stringpool_str14[sizeof("loop")];
+    char stringpool_str15[sizeof("trait")];
+    char stringpool_str16[sizeof("ref")];
+    char stringpool_str17[sizeof("type")];
+    char stringpool_str18[sizeof("macro")];
+    char stringpool_str19[sizeof("derive")];
+    char stringpool_str20[sizeof("impl")];
+    char stringpool_str21[sizeof("or")];
+    char stringpool_str22[sizeof("mut")];
+    char stringpool_str23[sizeof("when")];
+    char stringpool_str24[sizeof("match")];
+    char stringpool_str25[sizeof("return")];
+    char stringpool_str26[sizeof("const")];
+    char stringpool_str27[sizeof("let")];
+    char stringpool_str28[sizeof("continue")];
+    char stringpool_str29[sizeof("and")];
+    char stringpool_str30[sizeof("comptime")];
+    char stringpool_str31[sizeof("sizeof")];
+    char stringpool_str32[sizeof("default")];
+    char stringpool_str33[sizeof("await")];
+    char stringpool_str34[sizeof("dyn")];
+    char stringpool_str35[sizeof("while")];
+  };
+static const struct stringpool_t stringpool_contents =
+  {
+    "fn",
+    "for",
+    "self",
+    "false",
+    "struct",
+    "true",
+    "if",
+    "mod",
+    "enum",
+    "error",
+    "pub",
+    "else",
+    "break",
+    "static",
+    "loop",
+    "trait",
+    "ref",
+    "type",
+    "macro",
+    "derive",
+    "impl",
+    "or",
+    "mut",
+    "when",
+    "match",
+    "return",
+    "const",
+    "let",
+    "continue",
+    "and",
+    "comptime",
+    "sizeof",
+    "default",
+    "await",
+    "dyn",
+    "while"
+  };
+#define stringpool ((const char *) &stringpool_contents)
+const struct Keyword *
+lookup_keyword (register const char *str, register size_t len)
+{
+  enum
+    {
+      TOTAL_KEYWORDS = 36,
+      MIN_WORD_LENGTH = 2,
+      MAX_WORD_LENGTH = 8,
+      MIN_HASH_VALUE = 2,
+      MAX_HASH_VALUE = 41
+    };
+
+#if (defined __GNUC__ && __GNUC__ + (__GNUC_MINOR__ >= 6) > 4) || (defined __clang__ && __clang_major__ >= 3)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#endif
+  static const struct Keyword wordlist[] =
+    {
+#line 14 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str0, Token__Fn,},
+#line 24 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str1, Token__For,},
+#line 21 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str2, Token__Self,},
+#line 8 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str3, Token__False,},
+#line 15 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str4, Token__Struct,},
+#line 7 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str5, Token__True,},
+#line 10 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str6, Token__If,},
+#line 37 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str7, Token__Mod,},
+#line 32 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str8, Token__Enum,},
+#line 31 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str9, Token__Error,},
+#line 29 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str10, Token__Pub,},
+#line 11 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str11, Token__Else,},
+#line 27 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str12, Token__Break,},
+#line 36 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str13, Token__Static,},
+#line 23 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str14, Token__Loop,},
+#line 16 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str15, Token__Trait,},
+#line 30 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str16, Token__Ref,},
+#line 33 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str17, Token__Type,},
+#line 38 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str18, Token__Macro,},
+#line 39 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str19, Token__Derive,},
+#line 19 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str20, Token__Impl,},
+#line 18 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str21, Token__Or,},
+#line 12 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str22, Token__Mut,},
+#line 13 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str23, Token__When,},
+#line 28 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str24, Token__Match,},
+#line 20 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str25, Token__Return,},
+#line 22 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str26, Token__Const,},
+#line 9 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str27, Token__Let,},
+#line 26 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str28, Token__Continue,},
+#line 17 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str29, Token__And,},
+#line 35 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str30, Token__Comptime,},
+#line 42 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str31, Token__Sizeof,},
+#line 41 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str32, Token__Default,},
+#line 34 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str33, Token__Await,},
+#line 40 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str34, Token__Dyn,},
+#line 25 "./build/keywords.gperf"
+      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str35, Token__While,}
+    };
+#if (defined __GNUC__ && __GNUC__ + (__GNUC_MINOR__ >= 6) > 4) || (defined __clang__ && __clang_major__ >= 3)
+#pragma GCC diagnostic pop
+#endif
+
+  if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH)
+    {
+      register unsigned int key = hash (str, len);
+
+      if (key <= MAX_HASH_VALUE && key >= MIN_HASH_VALUE)
+        {
+          register const struct Keyword *resword;
+
+          switch (key - 2)
+            {
+              case 0:
+                resword = &wordlist[0];
+                goto compare;
+              case 1:
+                resword = &wordlist[1];
+                goto compare;
+              case 2:
+                resword = &wordlist[2];
+                goto compare;
+              case 3:
+                resword = &wordlist[3];
+                goto compare;
+              case 4:
+                resword = &wordlist[4];
+                goto compare;
+              case 5:
+                resword = &wordlist[5];
+                goto compare;
+              case 6:
+                resword = &wordlist[6];
+                goto compare;
+              case 7:
+                resword = &wordlist[7];
+                goto compare;
+              case 8:
+                resword = &wordlist[8];
+                goto compare;
+              case 9:
+                resword = &wordlist[9];
+                goto compare;
+              case 10:
+                resword = &wordlist[10];
+                goto compare;
+              case 11:
+                resword = &wordlist[11];
+                goto compare;
+              case 12:
+                resword = &wordlist[12];
+                goto compare;
+              case 13:
+                resword = &wordlist[13];
+                goto compare;
+              case 14:
+                resword = &wordlist[14];
+                goto compare;
+              case 15:
+                resword = &wordlist[15];
+                goto compare;
+              case 16:
+                resword = &wordlist[16];
+                goto compare;
+              case 17:
+                resword = &wordlist[17];
+                goto compare;
+              case 18:
+                resword = &wordlist[18];
+                goto compare;
+              case 19:
+                resword = &wordlist[19];
+                goto compare;
+              case 20:
+                resword = &wordlist[20];
+                goto compare;
+              case 21:
+                resword = &wordlist[21];
+                goto compare;
+              case 22:
+                resword = &wordlist[22];
+                goto compare;
+              case 23:
+                resword = &wordlist[23];
+                goto compare;
+              case 24:
+                resword = &wordlist[24];
+                goto compare;
+              case 25:
+                resword = &wordlist[25];
+                goto compare;
+              case 27:
+                resword = &wordlist[26];
+                goto compare;
+              case 28:
+                resword = &wordlist[27];
+                goto compare;
+              case 30:
+                resword = &wordlist[28];
+                goto compare;
+              case 31:
+                resword = &wordlist[29];
+                goto compare;
+              case 33:
+                resword = &wordlist[30];
+                goto compare;
+              case 34:
+                resword = &wordlist[31];
+                goto compare;
+              case 35:
+                resword = &wordlist[32];
+                goto compare;
+              case 36:
+                resword = &wordlist[33];
+                goto compare;
+              case 37:
+                resword = &wordlist[34];
+                goto compare;
+              case 39:
+                resword = &wordlist[35];
+                goto compare;
+            }
+          return (struct Keyword *) 0;
+        compare:
+          {
+            register const char *s = resword->id + stringpool;
+
+            if (*str == *s && !strncmp (str + 1, s + 1, len - 1) && s[len] == '\0')
+              return resword;
+          }
+        }
+    }
+  return (struct Keyword *) 0;
+}
+#line 43 "./build/keywords.gperf"
+
+
+

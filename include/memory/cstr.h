@@ -278,19 +278,30 @@ struct sslice {
 };
 typedef struct sslice sslice;
 
+
 #define sslice_new(...) ((sslice){__VA_ARGS__})
-#define sslice_empty() (sslice_new())
+
 
 #define sslice_static_new(static_str)                                      \
   /* Creates a new instance of [sslice] on the stack that points to string \
    literals, which reside in constant static readonly memory*/             \
   (sslice_new(.begin = (static_str), .len = (sizeof((static_str)))))
 
+
+#define sslice_empty() (sslice_new())  
+
+
+PURE_FUNC
+static inline bool sslice_is_empty(sslice self) {
+  return self.begin == nullptr || self.len <= 0;
+}
+
 PURE_FUNC
 static inline sslice sslice_from_str(const char* string) {
   const isize len = stringlen(string);
   return sslice_new(.begin = string, .len = len);
 }
+
 
 PURE_FUNC
 /// creates a new [sslice] from given string that points to the range provided by @param (from) and @param (to)

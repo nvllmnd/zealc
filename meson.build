@@ -86,6 +86,8 @@ ast_lib = static_library(
     'src/ast/lex.c',
     'src/ast/expr.c',
     'src/ast/parser.c',
+    'src/ast/keywords.c',
+    'src/ast/symbol.c',
   ),
   include_directories: inc,
   dependencies: dependencies,

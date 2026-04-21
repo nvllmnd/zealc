@@ -1,0 +1,45 @@
+%{
+	#include "ast/token.h"
+	#include "ast/symbol.h"
+%}
+struct Keyword { i32 id; TokenType type; }
+%%
+true, Token__True,
+false, Token__False,
+let, Token__Let,
+if, Token__If,
+else, Token__Else,
+mut, Token__Mut,
+when, Token__When,
+fn, Token__Fn,
+struct, Token__Struct,
+trait, Token__Trait,
+and, Token__And,
+or, Token__Or,
+impl, Token__Impl,
+return, Token__Return,
+self, Token__Self,
+const, Token__Const,
+loop, Token__Loop,
+for, Token__For,
+while, Token__While,
+continue, Token__Continue,
+break, Token__Break,
+match, Token__Match,
+pub, Token__Pub,
+ref, Token__Ref,
+error, Token__Error,
+enum, Token__Enum,
+type, Token__Type,
+await, Token__Await,
+comptime, Token__Comptime,
+static, Token__Static,
+mod, Token__Mod,
+macro, Token__Macro,
+derive, Token__Derive,
+dyn, Token__Dyn,
+default, Token__Default,
+sizeof, Token__Sizeof,
+%%
+
+

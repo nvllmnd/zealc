@@ -26,11 +26,6 @@ version_patch := `echo "$(git rev-list --count HEAD)"`
 version_full :=  version_major + "." + version_minor + "." + version_patch 
 
 
-# [extension(".js")]
-# bun-hello:
-#    let name = "Jackie";
-#    console.log(`Hello ${name}!`);
-
 # Lists Available Commands
 @default: 
 	echo "{{project_name}}. Version: {{version_full}}" 
@@ -47,6 +42,12 @@ version_full :=  version_major + "." + version_minor + "." + version_patch
 # Prints project project version
 @version:
 	echo "{{version_full}}"
+
+
+# Ensures our constant keyword hash table is generated
+@gen-keyword-hashes:
+	bash "./build/gperf_run"
+
 
 # Download meson wrap subproject dependencies so that they
 # can be compiled statically into resulting binaries, instead of dynamically linking
@@ -65,7 +66,7 @@ version_full :=  version_major + "." + version_minor + "." + version_patch
 	fi
 
 # Create debug build dir + configure"
-@setup-debug: sync-version
+@setup-debug: sync-version gen-keyword-hashes
 	if [ ! -d "{{debug_dir}}" ]; then \
 		echo "Setting up DEBUG build..."; \
 		mkdir -p "{{debug_dir}}"; \
@@ -76,7 +77,7 @@ version_full :=  version_major + "." + version_minor + "." + version_patch
 	fi
 
 #Create release build dir + configure"
-@setup-release: sync-version
+@setup-release: sync-version gen-keyword-hashes
 	if [ ! -d "{{release_dir}}" ]; then \
 		echo "Setting up RELASE build..."; \
 		mkdir -p "{{release_dir}}"; \
@@ -121,7 +122,6 @@ version_full :=  version_major + "." + version_minor + "." + version_patch
 # Clean both debug and release directories 
 @clean:
 	rm -rf "{{build_root}}"
-
 
 # Re-build Project in debug. Runs clean then build
 @rebuild-debug: clean build-debug
