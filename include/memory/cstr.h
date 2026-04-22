@@ -8,7 +8,7 @@
 #include "core_types.h"
 #include "intdefs.h"
 
-static constexpr usize SMALL_BUF_SIZE = 14;
+static constexpr i32 SMALL_BUF_SIZE = 14;
 
 #ifndef STRLEN_UPPER_BOUND
 
@@ -251,7 +251,6 @@ static inline cstr priv_cstr_token_impl(const char* s, usize len) {
    * check that*/                                                             \
   /* the provided string_literal argument is of length < [SMALL_BUF_SIZE]*/   \
   ({                                                                          \
-    static_assert(type_eq(string_literal, const char*));                      \
     constexpr const usize _LEN = sizeof((string_literal));                    \
     static_assert(_LEN < SMALL_BUF_SIZE);                                     \
     priv_cstr_token_impl(string_literal, _LEN);                               \
@@ -285,7 +284,7 @@ typedef struct sslice sslice;
 #define sslice_static_new(static_str)                                      \
   /* Creates a new instance of [sslice] on the stack that points to string \
    literals, which reside in constant static readonly memory*/             \
-  (sslice_new(.begin = (static_str), .len = (sizeof((static_str)))))
+  (sslice_new(.begin = (static_str), .len = (sizeof((static_str)) - 1))) /* - 1 so we dont include the null-terminating byte*/
 
 
 #define sslice_empty() (sslice_new())  
@@ -349,16 +348,6 @@ static inline bool sslice_eq(sslice left, sslice right) {
   return false;
 }
 
-/// Similar to [sslice_eq], but does not return false if
-/// the 2 given [sslice]s have different lengths.
-/// As such, it is possible for a string to match with its substr,
-///
-/// i.e.:
-///    sslice_matches("asdf qwer", "asdf") == true;
-///
-PURE_FUNC
-static inline bool sslice_matches(sslice left, sslice right) { return sslice_cmp(left, right) == 0; }
-
 /// Attempts to create a new [sslice] from a sub range of
 /// this [cstr]'s inner string.
 /// Returns a null/empty [sslice] if @param (from) or @param (to)
@@ -406,13 +395,4 @@ static inline bool cstr_eq(const cstr* left, const cstr* right) {
   return sslice_eq(l, r);
 }
 
-/// A [cstr] variant of [sslice_matches].
-/// Takes the [sslice] of both given [ctr]s and forwards call to [sslice_matches]
-///
-/// For more details, see: [sslice_matches]
-PURE_FUNC
-static inline bool cstr_matches(const cstr* left, const cstr* right) {
-  const sslice l = cstr_as_slice(left);
-  const sslice r = cstr_as_slice(right);
-  return sslice_matches(l, r);
-}
+

@@ -1,6 +1,7 @@
 %{
 	#include "ast/token.h"
 	#include "ast/symbol.h"
+	#include <assert.h>
 %}
 struct Keyword { i32 id; TokenType type; }
 %%
@@ -42,4 +43,9 @@ default, Token__Default,
 sizeof, Token__Sizeof,
 %%
 
-
+const char* kw_string(const Keyword* self) {
+	const i32 i = self->id;
+	static constexpr const i32 POOLSIZE = (i32)sizeof(struct stringpool_t);
+	assert(i >= 0 && i <= POOLSIZE);
+	return (stringpool + self->id);
+}

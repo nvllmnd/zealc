@@ -24,6 +24,30 @@ typedef enum FormatError {
   Format__Ok = 0
 } FormatError;
 
+FormatError i64_into_str(i64 n, char* dst, i32 dst_len);
+
+/// Creates a string representation of a given i64 integer into a
+/// new [cstr]. This function is guaranteed to not allocate. However,
+/// any digits past the [SMALL_BUF_SIZE]th (or [SMALL_BUF_SIZE - 1]th digit if (n) is a negative number, to account for the negative sign)
+/// digit will be lost/truncated,
+///
+/// If you know the number you want to turn into
+/// a string is <= [INT32_MAX], then see: [i32_to_cstr], as
+/// that function is also gauranteed not to allocate memory, but
+/// [SMALL_BUF_SIZE] (should) be large enough to represent [INT32_MAX] or [INT32_MIN]
+/// as a string without losing any information
+///
+PURE_FUNC
+cstr i64_truncate_into(i64 n);
+
+
+/// Creates a string representation of a given i32 integer into  a
+/// new [cstr]. This function is guaranteed to not allocate (on the heap).
+/// as the parsed string is stored on the stack
+PURE_FUNC
+cstr i32_to_cstr(i32 n);
+
+
 FORMAT_FUNC(3,4)
 RETURNS_ERROR
 FormatError format_with(char* dst, isize dst_len, const char* fmt, ...);

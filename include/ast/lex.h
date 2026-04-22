@@ -16,6 +16,8 @@ typedef enum LexError {
   LexError__FloatParseFail,
   LexError__IntegerParseFail,
   LexError__UnexpectedRunePrefix,
+  /// Lexer encountered a '\' character in an unexpected/illegal location!
+  LexError__UnexpectedEscapeCharacter,
   /// Lexer encountered an EOF/end of source string unexpectedly in the middle of tokenization
   LexError__UnexpectedEndOfSource,
   /// i.e. let x = 1.5.7 // too many '.'!
@@ -24,8 +26,6 @@ typedef enum LexError {
   LexError__IllegalIdentifier,
   LexError__FailedToOpenFile,
   LexError__InnerFileIO,
-  /// Lexer has reached the end of tokenziing source code string
-  LexError__Eof,
 
   /// Some inner lexer function expected a TokenType value in a certain range,
   /// but received one out of that range. i.e. a fuction expected a keyword token type (between Token__KeywordStart - Token__KeywordEnd)

@@ -1,34 +1,30 @@
 #include "memory/cstr.h"
+
+#include <assert.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "attributes.h"
 #include "core_types.h"
 #include "mimalloc.h"
-#include <assert.h>
-#include <string.h>
 
-static void init_small_cstr(cstr *self, const char *string, usize len) {
+static void init_small_cstr(cstr* self, const char* string, usize len) {
   assert(len <= SMALL_BUF_SIZE);
   self->buf.len = cast(u8, len);
   strncpy(self->buf.mem, string, len);
   self->buf.mem[SMALL_BUF_SIZE] = 0;
 }
 
-
 static u8* alloc_prefix_memory(usize size) {
-
-  const usize  alloc_size  = size + sizeof(i32) + 1;  
-
+  const usize alloc_size = size + sizeof(i32) + 1;
 
   u8* s = mi_calloc(sizeof(u8), alloc_size);
   assert(nullptr != s);
 
   return s;
-
 }
 static prefix_str prefix_str_new(const char* string, usize len) {
-
-
   u8* s = alloc_prefix_memory(len);
-
 
   i32* prefix_ptr = pcast(i32, s);
 
@@ -37,9 +33,7 @@ static prefix_str prefix_str_new(const char* string, usize len) {
   prefix_str string_begin = pcast(char, prefix_ptr + 1);
   strncpy(string_begin, string, len);
   return string_begin;
-
 }
-
 
 static void prefix_str_set_len(prefix_str ps, usize new_len) {
   i32* prefix = pcast(i32, ps);
@@ -55,12 +49,11 @@ static void init_large_cstr(cstr* self, const char* string, usize len) {
   self->is_large = true;
 
   prefix_str string_begin = prefix_str_new(string, len);
-  
+
   self->heap = string_begin;
 }
 
-
-cstr cstr_new(const char *string) {
+cstr cstr_new(const char* string) {
   const usize len = stringlen(string);
   return cstr_from_slice(string, len);
 }
@@ -71,25 +64,22 @@ cstr cstr_large_with_capacity(usize capacity) {
   i32* prefix_ptr = pcast(i32, mem);
   *prefix_ptr = cast(i32, capacity);
 
-  
   prefix_str str_begin = pcast(char, prefix_ptr + 1);
 
-  return (cstr){ .is_large = true, .heap = str_begin };
-
-
+  return (cstr){.is_large = true, .heap = str_begin};
 }
 
-cstr cstr_from_slice(const char *string, usize len) {
+cstr cstr_from_slice(const char* string, usize len) {
   cstr self = {};
   if (len <= SMALL_BUF_SIZE) {
-    init_small_cstr(&self, string,  len);
+    init_small_cstr(&self, string, len);
   } else {
-   init_large_cstr(&self, string, len);    
+    init_large_cstr(&self, string, len);
   }
-   return self;
+  return self;
 }
 
-CStrError cstr_init_small(cstr *self, const char *string) {
+CStrError cstr_init_small(cstr* self, const char* string) {
   const usize string_len = stringlen(string);
 
   if (string_len <= SMALL_BUF_SIZE) {
@@ -102,22 +92,21 @@ CStrError cstr_init_small(cstr *self, const char *string) {
   return CStrError__StringTooBig;
 }
 
-cstr cstr_small_new(const char *string) {
+cstr cstr_small_new(const char* string) {
   const usize slen = stringlen(string);
 
   const usize len = min(slen, SMALL_BUF_SIZE);
   cstr self = {};
   init_small_cstr(&self, string, len);
   return self;
-
 }
 void cstr_free(cstr* self) {
   // We only have to call free if this is a large
   // cstr that has been allocated on the heap
   if (self->is_large) {
-    i32 *prefix_end = pcast(i32, self->heap);
-    i32 *prefix = prefix_end - 1;
-    void *data = pcast(void, prefix);
+    i32* prefix_end = pcast(i32, self->heap);
+    i32* prefix = prefix_end - 1;
+    void* data = pcast(void, prefix);
     mi_free(data);
 
     self->heap = nullptr;
@@ -126,7 +115,7 @@ void cstr_free(cstr* self) {
 }
 
 bool cstr_shrink_to(cstr* self, usize smaller_size) {
-  const usize len = cstr_len(*self);  
+  const usize len = cstr_len(*self);
   // we were given a bogus, insignificant value, bail out
   if (smaller_size >= len) {
     return false;
@@ -134,15 +123,35 @@ bool cstr_shrink_to(cstr* self, usize smaller_size) {
 
   if (self->is_large) {
     prefix_str ps = self->heap;
-    prefix_str_set_len(ps,  smaller_size);
-    ps[len] = 0; // trailing null character
+    prefix_str_set_len(ps, smaller_size);
+    ps[len] = 0;  // trailing null character
   } else {
     self->buf.len = cast(u8, smaller_size);
-    self->buf.mem[self->buf.len] = 0; // trailing null character
+    self->buf.mem[self->buf.len] = 0;  // trailing null character
   }
 
   return true;
-  
+}
+
+cstr i64_truncate_into(i64 n) {
+
+  cstr self = {};
+
+  const i32 len = snprintf(self.buf.mem, SMALL_BUF_SIZE, "%13li", n);
+  assert(len <= SMALL_BUF_SIZE && len > 0);
+
+  self.buf.len = len;
+  return self;  
+}
+
+cstr i32_to_cstr(i32 n) {
+  cstr self = {};
+
+  const i32 len = snprintf(self.buf.mem, SMALL_BUF_SIZE, "%13d", n);
+  assert(len <= SMALL_BUF_SIZE && len > 0);
+
+  self.buf.len = len;
+  return self;
 }
 
 cstr cstr_concat(const cstr* left, const cstr* right) {
@@ -162,15 +171,14 @@ cstr cstr_concat(const cstr* left, const cstr* right) {
   return self;
 }
 
-cstr cstr_move_concat(cstr *left, cstr *right) {
-  cstr self = cstr_concat(left,  right);
+cstr cstr_move_concat(cstr* left, cstr* right) {
+  cstr self = cstr_concat(left, right);
   cstr_free(left);
   cstr_free(right);
   return self;
 }
 
 void cstr_append_string(cstr* self, const char* s, usize slen) {
-
   const usize len = cstr_len(*self);
   const usize next_size = len + slen;
 

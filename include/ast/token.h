@@ -65,8 +65,8 @@ typedef enum TokenType : i32 {
   /// falls out of range of the keyword TokenType constants
   Token__CannotGetStringOfNonKeyword = -1,
   /// No Token has been parsed. Lexer encountered an error, or has reached EOF
-  Token__None = 0,
-  Token__Identifier = 1,
+  Token__Eof = 0,
+  Token__Identifier,
   Token__LiteralStart,
   /// true/false
   // Token__Bool,
@@ -133,9 +133,9 @@ typedef enum TokenType : i32 {
 
   Token__ForwardSlashEq,  
 
-  Token__DblBackSlash,  
+  Token__DoubleBackSlash,  
 
-  Token__DblColon,  
+  Token__DoubleColon,  
 
   Token__LtEq,  
 
@@ -143,7 +143,7 @@ typedef enum TokenType : i32 {
 
   Token__Elipses,  
 
-  Token__DblPipe,  
+  Token__DoublePipe,  
 
   /// ()
   Token__EmptyParen,  
@@ -157,6 +157,12 @@ typedef enum TokenType : i32 {
   Token__ArrowLeft,  
   /// =>
   Token__FatArrow,
+  Token__ChevronEq,
+  Token__PipeEq,
+  Token__PipeRight,
+  Token__PipeLeft,
+  Token__ShiftRight,
+  Token__ShiftLeft,
 
   Token__GlyphsEnd,
   Token__GlyphsCount = (Token__GlyphsEnd - Token__GlyphStart) - 1,

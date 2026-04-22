@@ -35,9 +35,23 @@ METHOD
 PURE_FUNC
 static inline char lexer_peekc(const LexState* self) { return self->source.begin[self->cursor.i]; }
 
+/// Same as [lexer_adv], but peeks the current character after advancing
+METHOD
+static inline char lexer_adv_peekc(LexState* self) {
+  lexer_adv(self);
+  return lexer_peekc(self);
+}
+
+/// Same as [lexer_adv_nl], but peeks the current character after advancing
+METHOD
+static inline char lexer_adv_nl_peekc(LexState* self) {
+  lexer_adv_nl(self);
+  return lexer_peekc(self);
+}
+
 METHOD
 PURE_FUNC
-static inline char lexer_peekc_next(const LexState* self) {
+static inline char lexer_next_peekc(const LexState* self) {
   assert(self->cursor.i + 1 < self->source.len);
   return self->source.begin[self->cursor.i + 1];
 }
@@ -64,11 +78,12 @@ static inline bool lexer_next_is_eof(const LexState* self) {
 
 METHOD
 static inline void lexer_whitespace_skip(LexState* self) {
-  while (!lexer_is_eof(self) && isspace(lexer_peekc(self))) {
-    if (lexer_peekc(self) == '\n') {
-      lexer_adv_nl(self);
+  char c = lexer_peekc(self);
+  while (!lexer_is_eof(self) && isspace(c)) {
+    if (c == '\n') {
+      c = lexer_adv_nl_peekc(self);
     } else {
-      lexer_adv(self);
+      c = lexer_adv_peekc(self);
     }
   }
 }
@@ -84,6 +99,9 @@ static LexError lexer_rune(LexState* self, Token* tok);
 
 PARAMS_NONNULL(1, 3)
 static LexError lexer_glyph(LexState* self, TokenType tt, Token* tok);
+
+PARAMS_NONNULL(1, 2)
+static LexError lexer_string(LexState* self, Token* tok);
 
 static const char* LEX_ERROR_STRINGS[_LexError__Count] = {
     STRINGIFY(LexError__Ok),
@@ -117,7 +135,7 @@ static inline bool lexer_is_rune(const LexState* self) {
   }
 
   const char c = lexer_peekc(self);
-  const char next = lexer_peekc_next(self);
+  const char next = lexer_next_peekc(self);
 
   return (c == ':' && (isalpha(next) || next == '_'));
 }
@@ -136,78 +154,243 @@ LexError lexer_next(LexState* self, Token* next_token) {
   lexer_whitespace_skip(self);
   *next_token = (Token){};
 
-  const char c = lexer_peekc(self);
+  if (UNLIKELY(lexer_is_eof(self))) {
+    next_token->type = Token__Eof;
+    next_token->lexeme = sslice_static_new("<<EOF>>");
+    return LexError__Ok;
+  }
+
+  char c = lexer_peekc(self);
 
   switch (c) {
     case Token__OpenBrace: {
-      if (UNLIKELY(lexer_next_is_eof(self))) {
-        // something probably wrong if source string ends with '{'
-        return LexError__UnexpectedEndOfSource;
-      }
-      const char next = lexer_peekc_next(self);
-      if (next == Token__CloseBrace) {
-        return lexer_glyph(self, Token__EmptyBrace, next_token);
-      }
+      lexer_adv(self);
+      return lexer_glyph(self, Token__OpenBrace, next_token);
     } break;
     case Token__CloseBrace: {
+      lexer_adv(self);
+      return lexer_glyph(self, Token__CloseBrace, next_token);
     } break;
     case Token__OpenParen: {
+      lexer_adv(self);
+      return lexer_glyph(self, Token__OpenParen, next_token);
     } break;
     case Token__CloseParen: {
+      lexer_adv(self);
+      return lexer_glyph(self, Token__CloseParen, next_token);
     } break;
     case Token__OpenBracket: {
+      lexer_adv(self);
+      return lexer_glyph(self, Token__OpenBracket, next_token);
     } break;
     case Token__CloseBracket: {
+      lexer_adv(self);
+
+      return lexer_glyph(self, Token__CloseBracket, next_token);
     } break;
     case Token__Period: {
+      lexer_adv(self);
+      return lexer_glyph(self, Token__Period, next_token);
     } break;
     case Token__Eq: {
+      // c = lexer_peekc_next();
+      c = lexer_next_peekc(self);
+      switch (c) {
+        case '>': {
+          lexer_adv(self);
+          return lexer_glyph(self, Token__FatArrow, next_token);
+        } break;
+        case '=': {
+          lexer_adv(self);
+          return lexer_glyph(self, Token__DoubleEq, next_token);
+        } break;
+        default: {
+          return lexer_glyph(self, Token__Eq, next_token);
+        } break;
+      }
     }
-
     case Token__DoubleQuot: {
-    } break;
+      lexer_adv(self);
+      return lexer_string(self, next_token);
 
-    case Token__SingleQuot: {
     } break;
+    // TODO: Implement char tokenization, or just make single quote strings the same as double quote ones like
+    // javascript...
+    // case Token__SingleQuot: { } break;
     case Token__Bang: {
+      c = lexer_next_peekc(self);
+      if (c == '=') {
+        lexer_adv(self);
+        return lexer_glyph(self, Token__BangEq, next_token);
+      } else {
+        return lexer_glyph(self, Token__Bang, next_token);
+      }
     } break;
     case Token__Percent: {
+      c = lexer_next_peekc(self);
+      if (c == '=') {
+        lexer_adv(self);
+        return lexer_glyph(self, Token__PercentEq, next_token);
+      } else {
+        return lexer_glyph(self, Token__Percent, next_token);
+      }
+
     } break;
     case Token__ChevronUp: {
+      c = lexer_next_peekc(self);
+      if (c == '=') {
+        lexer_adv(self);
+        return lexer_glyph(self, Token__ChevronEq, next_token);
+      } else {
+        return lexer_glyph(self, Token__ChevronUp, next_token);
+      }
     } break;
     case Token__Ampersand: {
+      c = lexer_next_peekc(self);
+      if (c == '=') {
+        lexer_adv(self);
+        return lexer_glyph(self, Token__AmpersandEq, next_token);
+      } else {
+        return lexer_glyph(self, Token__Ampersand, next_token);
+      }
     } break;
     case Token__Star: {
+      c = lexer_next_peekc(self);
+      if (c == '=') {
+        lexer_adv(self);
+        return lexer_glyph(self, Token__StarEq, next_token);
+      } else {
+        return lexer_glyph(self, Token__Star, next_token);
+      }
     } break;
     case Token__Minus: {
+      c = lexer_next_peekc(self);
+      switch (c) {
+        case '=': {
+          lexer_adv(self);
+          return lexer_glyph(self, Token__MinusEq, next_token);
+        } break;
+        case '>': {
+          lexer_adv(self);
+          return lexer_glyph(self, Token__ArrowRight, next_token);
+        } break;
+        default: {
+          return lexer_glyph(self, Token__Minus, next_token);
+        } break;
+      }
+      if (c == '=') {
+        lexer_adv(self);
+        return lexer_glyph(self, Token__MinusEq, next_token);
+      } else {
+        return lexer_glyph(self, Token__Minus, next_token);
+      }
     } break;
     case Token__Plus: {
+      c = lexer_next_peekc(self);
+      if (c == '=') {
+        lexer_adv(self);
+        return lexer_glyph(self, Token__PlusEq, next_token);
+      } else {
+        return lexer_glyph(self, Token__Plus, next_token);
+      }
     } break;
-
-    case Token__UnaryUnderscore: {
-    } break;
-
     case Token__Pipe: {
+      c = lexer_next_peekc(self);
+      switch (c) {
+        case '|': {
+          lexer_adv(self);
+          return lexer_glyph(self, Token__DoublePipe, next_token);
+        } break;
+        case '=': {
+          lexer_adv(self);
+          return lexer_glyph(self, Token__PipeEq, next_token);
+        } break;
+        case '>': {
+          lexer_adv(self);
+          return lexer_glyph(self, Token__PipeRight, next_token);
+        } break;
+        default: {
+          return lexer_glyph(self, Token__Pipe, next_token);
+        } break;
+      }
     } break;
     case Token__Comma: {
+      lexer_adv(self);
+      return lexer_glyph(self, Token__Comma, next_token);
     } break;
     case Token__Gt: {
+      c = lexer_next_peekc(self);
+      switch (c) {
+        case '>': {
+          lexer_adv(self);
+          return lexer_glyph(self, Token__ShiftRight, next_token);
+        } break;
+        case '=': {
+          lexer_adv(self);
+          return lexer_glyph(self, Token__GtEq, next_token);
+        } break;
+        default: {
+          return lexer_glyph(self, Token__Gt, next_token);
+        } break;
+      }
     } break;
     case Token__Lt: {
+      c = lexer_next_peekc(self);
+      switch (c) {
+        case '<': {
+          lexer_adv(self);
+          return lexer_glyph(self, Token__ShiftLeft, next_token);
+        } break;
+        case '=': {
+          lexer_adv(self);
+          return lexer_glyph(self, Token__LtEq, next_token);
+        } break;
+        case '|': {
+          lexer_adv(self);
+          return lexer_glyph(self, Token__PipeLeft, next_token);
+        } break;
+        case '-': {
+          lexer_adv(self);
+          return lexer_glyph(self, Token__ArrowLeft, next_token);
+        } break;
+        default: {
+          return lexer_glyph(self, Token__Lt, next_token);
+        } break;
+      }
     } break;
     case Token__Semicolon: {
+      lexer_adv(self);
+      return lexer_glyph(self, Token__Semicolon, next_token);
     } break;
-
     case Token__Colon: {
+      c = lexer_next_peekc(self);
+      if (c == ':') {
+        lexer_adv(self);
+        return lexer_glyph(self, Token__DoubleColon, next_token);
+      } else {
+        return lexer_glyph(self, Token__Colon, next_token);
+      }
     } break;
     case Token__BackSlash: {
+      // TODO: allow backslashes for escaping characters in strings and maybe even
+      // for lines like C, for now though, zeal does not recognize '\', and might be
+      // completely ignored in the future if not included in core language
+      lexer_adv(self);
+      return LexError__UnexpectedEscapeCharacter;
+
     } break;
     case Token__ForwardSlash: {
+      c = lexer_next_peekc(self);
+      if (c == '=') {
+        lexer_adv(self);
+        return lexer_glyph(self, Token__ForwardSlashEq, next_token);
+      } else {
+        return lexer_glyph(self, Token__ForwardSlash, next_token);
+      }
     } break;
     case Token__QMark: {
-    } break;
-
-    default: {
+      lexer_adv(self);
+      return lexer_glyph(self, Token__QMark, next_token);
     } break;
   }
 
@@ -215,37 +398,13 @@ LexError lexer_next(LexState* self, Token* next_token) {
     return lexer_rune(self, next_token);
 
   } else if (lexer_is_alpha_or_uscore(self)) {
-    // switch (c) {
-    //   case 't': {} break;
-    //   case 'f': {} break;
-    // }
-
-    const LexError err = lexer_identifier(self, next_token);
-    if (err == LexError__Ok) {
-      // const sslice lexeme = next_token->lexeme;
-
-      // if (sslice_eq(lexeme, sslice_static_new("true"))) {
-
-      // }
-
-    } else {
-      return err;
-    }
+    return lexer_identifier(self, next_token);
 
   } else if (isdigit(c)) {
     return lexer_integer(self, next_token);
-
-  } else {
-  }
+  } 
 
   return LexError__UnexpectedCharacter;
-  // } else if (ispunct(c)) {
-
-  // }
-
-  // switch (c) {
-
-  // }
 }
 
 /// Peeks next token by returning a new [LexState], where calling [lexer_next] on
@@ -372,7 +531,14 @@ static const char* TOKEN_TYPE_GLYPH_STRINGS[Token__GlyphsCount] = {
     // Token__ArrowLeft,
     "<-",
     // Token__FatArrow,
-    "=>"};
+    "=>",
+    "^=",
+    "|=",
+    "|>",
+    "<|",
+    ">>",
+    "<<",
+};
 
 static constexpr const char GLYPH_ERR_STRING[] = STRINGIFY(Token__CannotGetStringOfNonGlyph);
 static constexpr const char KEYWORD_ERR_STRING[] = STRINGIFY(Token__CannotGetStringOfNonKeyword);
@@ -461,7 +627,6 @@ const char* tokentype_glyph_string(TokenType tt) {
 //   // const i32 len = ident.len - offset;
 // }
 
-
 PARAMS_NONNULL(1, 2)
 static LexError lexer_identifier(LexState* self, Token* tok) {
   const i32 start = self->cursor.i;
@@ -477,7 +642,6 @@ static LexError lexer_identifier(LexState* self, Token* tok) {
 
     const i32 end = self->cursor.i - 1;
     tok->lexeme = lexer_slice(self, start, end);
-    tok->loc = self->cursor;
 
     // tok->type = Token__Identifier;
     return LexError__Ok;
@@ -524,7 +688,7 @@ static LexError lexer_float(LexState* self, Token* tok, i32 start) {
   const sslice lexeme = lexer_slice(self, start, end);
 
   tok->type = Token__Float;
-  tok->loc = self->cursor;
+  tok->loc = make(SourceLocation, start, self->cursor.row, start);
   tok->lexeme = lexeme;
 
   char parse_buf[lexeme.len + 1] = {};
@@ -568,7 +732,7 @@ static LexError lexer_integer(LexState* self, Token* tok) {
   strncpy(parse_buf, lexeme.begin, lexeme.len);
 
   tok->type = Token__Int;
-  tok->loc = self->cursor;
+  tok->loc = make(SourceLocation, start, self->cursor.row, start);  // self->cursor;
   tok->lexeme = lexeme;
 
   char* parse_end = parse_buf;
@@ -619,7 +783,7 @@ static LexError lexer_rune(LexState* self, Token* tok) {
   const i32 end = self->cursor.i;
   tok->type = Token__Rune;
   tok->lexeme = lexer_slice(self, start, end);
-  tok->loc = self->cursor;
+  tok->loc = make(SourceLocation, start, self->cursor.row, start);  // self->cursor;
 
   return LexError__Ok;
 }
@@ -629,13 +793,39 @@ static LexError lexer_glyph(LexState* self, TokenType tt, Token* tok) {
   if (LIKELY(tokentype_is_glyph(tt))) {
     tok->type = tt;
     tok->lexeme = tokentype_glyph_sslice(tt);
-    tok->loc = self->cursor;
+    const i32 start = self->cursor.i - tok->lexeme.len;
+    tok->loc = make(SourceLocation, start, self->cursor.row, start);  // self->cursor;
     return LexError__Ok;
   }
   return LexError__TokenTypeOutOfRange;
 }
 
+static LexError lexer_string(LexState* self, Token* tok) {
+  static constexpr const i32 DEPTH_MAX = INT32_MAX;
 
+  const i32 start = self->cursor.i - 1;  // previous character will always be the first '"', denoting start of string
+
+  char c = lexer_peekc(self);
+  i32 i = 0;
+  while (c != '"' && i < DEPTH_MAX) {
+    c = lexer_adv_peekc(self);
+    i++;
+  }
+
+  if (LIKELY(c == '"' && i < DEPTH_MAX)) {
+    const i32 end = self->cursor.i;
+
+    lexer_adv(self);
+    tok->lexeme = lexer_slice(self, start, end);
+    tok->type = Token__String;
+    tok->loc = make(SourceLocation, start, self->cursor.row, start);
+    return LexError__Ok;
+  } else {
+    return LexError__UnmatchedDoubleQuotString;
+  }
+
+  // for (i32 i = 0; c != '"' && i < DEPTH_MAX; i++, c = lexer_adv_peekc(self));
+}
 
 bool tokentype_is_keyword(TokenType self) { return self > Token__KeywordsStart && self < Token__KeywordsEnd; }
 

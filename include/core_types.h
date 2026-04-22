@@ -3,6 +3,7 @@
 #include <math.h>
 
 #include "intdefs.h"
+#include "mimalloc.h"
 
 #define array(T, N)                                                    \
   /* conveinence for declaring static array of type (T) of size (N) */ \
@@ -106,4 +107,21 @@
 
 
 #define UNUSED(v) ((void)v)
+
+
+#define make(T, ...) /* Conveinence macro for creating new structs. Does not allocate on heap. */ ((T){ __VA_ARGS__ })
+
+
+// #define alloc_in(T, allocator) ((__typeof__(T))(allocator_allocate(allocator, sizeof(__typeof__(T), alignof(__typeof__(T))))))
+// #define alloc(T) (alloc_in(T, global_allocator()))
+
+
+// #define alloc(T, allocator, ...) ({\
+//     u8* mem = allocator_allocate((allocator), sizeof(__typeof__(T), alignof(__typeof__(T))); \
+//     if (UNLIKELY(is_null(mem))) { abort(0); }\
+//     __typeof__(T*) self = pcast(__typeof__(T), mem); \
+//     *self = (__typeof__(T){ __VA_ARGS__ }); \
+//     self; \
+//     \
+// })
 

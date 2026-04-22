@@ -5,7 +5,6 @@ project_full_name := "{{project_name}} :: {{project_short_desc}}"
 build_root := "./bin"
 
 bin_executable_name := "zealc"
-bin_library_name := "zcore"
 
 # Build directories
 debug_dir := build_root + "/debug"
@@ -37,6 +36,15 @@ version_full :=  version_major + "." + version_minor + "." + version_patch
 	rm .version; \
 	echo "{{version_full}}" >> .version; \
 	echo "{{project_name}} version synced to v{{version_full}}!";
+
+# Creates a symbolic link to debug build output compile_commands.json for IDE intellisense
+@compile-commands-debug:
+	ln -sf "{{debug_dir}}/compile_commands.json" .
+
+
+# Creates a symbolic link to debug build output compile_commands.json for IDE intellisense
+@compile-commands-release:
+	ln -sf "{{release_dir}}/compile_commands.json" .
 
 
 # Prints project project version
@@ -97,11 +105,13 @@ version_full :=  version_major + "." + version_minor + "." + version_patch
 
 #Compile debug build"
 @build-debug: setup-debug
-	meson compile -C "{{debug_dir}}"
+	meson compile -C "{{debug_dir}}"; \
+	just compile-commands-debug
 
 #Compile optimized release build
 @build-release: setup-release
-	meson compile -C "{{release_dir}}"
+	meson compile -C "{{release_dir}}"; \
+	just compile-commands-release
 
 #Run project (debug ) executable"
 @run-debug: build-debug
@@ -111,13 +121,26 @@ version_full :=  version_major + "." + version_minor + "." + version_patch
 @run-release: build-release
 	"{{release_dir}}/{{bin_executable_name}}"
 
+
 # Run meson tests in debug mode
-@test-debug: build-debug
-	meson test -C "{{debug_dir}}"
+# You can pass 'v', 'verbose' or 'interactive' as an argument to this rule for
+# meson to run tests with the '--interactive' flag
+@test-debug arg='none': build-debug
+	if [ "{{arg}}" = "verbose" ] || [ "{{arg}}" = "v" ] || [ "{{arg}}" = "interactive" ]; then \
+		meson test -C "{{debug_dir}}" --interactive; \
+	else \
+		meson test -C "{{debug_dir}}"; \
+	fi
+
 
 # run meson tests in release mode
-@test-release: build-release
-	meson test -C "{{release_dir}}"
+@test-release arg='none': build-release
+	if [ "{{arg}}" = "verbose" ] || [ "{{arg}}" = "v" ] || [ "{{arg}}" = "interactive" ]; then \
+		meson test -C "{{release_dir}}" --interactive; \
+	else \
+		meson test -C "{{release_dir}}"; \
+	fi
+
 
 # Clean both debug and release directories 
 @clean:

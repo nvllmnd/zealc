@@ -1,5 +1,5 @@
 /* ANSI-C code produced by gperf version 3.3 */
-/* Command-line: gperf --struct-type --omit-struct-type --slot-name=id --compare-strncmp --multiple-iterations=100 --switch=1 --readonly-tables --enum --pic --random --includes --lookup-function-name=lookup_keyword --output-file=./src/ast/keywords.c ./build/keywords.gperf  */
+/* Command-line: gperf --struct-type --omit-struct-type --global-table --slot-name=id --compare-strncmp --multiple-iterations=100 --switch=1 --readonly-tables --enum --pic --random --includes --lookup-function-name=kw_lookup_str --output-file=./src/ast/keywords.c ./build/keywords.gperf  */
 /* Computed positions: -k'1,3' */
 
 #if !((' ' == 32) && ('!' == 33) && ('"' == 34) && ('#' == 35) \
@@ -33,7 +33,17 @@
 
 	#include "ast/token.h"
 	#include "ast/symbol.h"
+	#include <assert.h>
 #include <string.h>
+enum
+  {
+    TOTAL_KEYWORDS = 36,
+    MIN_WORD_LENGTH = 2,
+    MAX_WORD_LENGTH = 8,
+    MIN_HASH_VALUE = 2,
+    MAX_HASH_VALUE = 41
+  };
+
 /* maximum key range = 40, duplicates = 0 */
 
 #ifdef __GNUC__
@@ -174,101 +184,93 @@ static const struct stringpool_t stringpool_contents =
     "while"
   };
 #define stringpool ((const char *) &stringpool_contents)
-const struct Keyword *
-lookup_keyword (register const char *str, register size_t len)
-{
-  enum
-    {
-      TOTAL_KEYWORDS = 36,
-      MIN_WORD_LENGTH = 2,
-      MAX_WORD_LENGTH = 8,
-      MIN_HASH_VALUE = 2,
-      MAX_HASH_VALUE = 41
-    };
 
 #if (defined __GNUC__ && __GNUC__ + (__GNUC_MINOR__ >= 6) > 4) || (defined __clang__ && __clang_major__ >= 3)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #endif
-  static const struct Keyword wordlist[] =
-    {
-#line 14 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str0, Token__Fn,},
-#line 24 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str1, Token__For,},
-#line 21 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str2, Token__Self,},
-#line 8 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str3, Token__False,},
+static const struct Keyword wordlist[] =
+  {
 #line 15 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str4, Token__Struct,},
-#line 7 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str5, Token__True,},
-#line 10 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str6, Token__If,},
-#line 37 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str7, Token__Mod,},
-#line 32 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str8, Token__Enum,},
-#line 31 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str9, Token__Error,},
-#line 29 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str10, Token__Pub,},
-#line 11 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str11, Token__Else,},
-#line 27 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str12, Token__Break,},
-#line 36 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str13, Token__Static,},
-#line 23 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str14, Token__Loop,},
-#line 16 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str15, Token__Trait,},
-#line 30 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str16, Token__Ref,},
-#line 33 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str17, Token__Type,},
-#line 38 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str18, Token__Macro,},
-#line 39 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str19, Token__Derive,},
-#line 19 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str20, Token__Impl,},
-#line 18 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str21, Token__Or,},
-#line 12 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str22, Token__Mut,},
-#line 13 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str23, Token__When,},
-#line 28 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str24, Token__Match,},
-#line 20 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str25, Token__Return,},
-#line 22 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str26, Token__Const,},
-#line 9 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str27, Token__Let,},
-#line 26 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str28, Token__Continue,},
-#line 17 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str29, Token__And,},
-#line 35 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str30, Token__Comptime,},
-#line 42 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str31, Token__Sizeof,},
-#line 41 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str32, Token__Default,},
-#line 34 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str33, Token__Await,},
-#line 40 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str34, Token__Dyn,},
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str0, Token__Fn,},
 #line 25 "./build/keywords.gperf"
-      {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str35, Token__While,}
-    };
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str1, Token__For,},
+#line 22 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str2, Token__Self,},
+#line 9 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str3, Token__False,},
+#line 16 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str4, Token__Struct,},
+#line 8 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str5, Token__True,},
+#line 11 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str6, Token__If,},
+#line 38 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str7, Token__Mod,},
+#line 33 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str8, Token__Enum,},
+#line 32 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str9, Token__Error,},
+#line 30 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str10, Token__Pub,},
+#line 12 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str11, Token__Else,},
+#line 28 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str12, Token__Break,},
+#line 37 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str13, Token__Static,},
+#line 24 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str14, Token__Loop,},
+#line 17 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str15, Token__Trait,},
+#line 31 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str16, Token__Ref,},
+#line 34 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str17, Token__Type,},
+#line 39 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str18, Token__Macro,},
+#line 40 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str19, Token__Derive,},
+#line 20 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str20, Token__Impl,},
+#line 19 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str21, Token__Or,},
+#line 13 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str22, Token__Mut,},
+#line 14 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str23, Token__When,},
+#line 29 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str24, Token__Match,},
+#line 21 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str25, Token__Return,},
+#line 23 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str26, Token__Const,},
+#line 10 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str27, Token__Let,},
+#line 27 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str28, Token__Continue,},
+#line 18 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str29, Token__And,},
+#line 36 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str30, Token__Comptime,},
+#line 43 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str31, Token__Sizeof,},
+#line 42 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str32, Token__Default,},
+#line 35 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str33, Token__Await,},
+#line 41 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str34, Token__Dyn,},
+#line 26 "./build/keywords.gperf"
+    {(int)(size_t)&((struct stringpool_t *)0)->stringpool_str35, Token__While,}
+  };
 #if (defined __GNUC__ && __GNUC__ + (__GNUC_MINOR__ >= 6) > 4) || (defined __clang__ && __clang_major__ >= 3)
 #pragma GCC diagnostic pop
 #endif
 
+const struct Keyword *
+kw_lookup_str (register const char *str, register size_t len)
+{
   if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH)
     {
       register unsigned int key = hash (str, len);
@@ -400,7 +402,12 @@ lookup_keyword (register const char *str, register size_t len)
     }
   return (struct Keyword *) 0;
 }
-#line 43 "./build/keywords.gperf"
+#line 44 "./build/keywords.gperf"
 
 
-
+const char* kw_string(const Keyword* self) {
+	const i32 i = self->id;
+	static constexpr const i32 POOLSIZE = (i32)sizeof(struct stringpool_t);
+	assert(i >= 0 && i <= POOLSIZE);
+	return (stringpool + self->id);
+}

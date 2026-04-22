@@ -4,5 +4,5 @@ if [[ -f "./src/ast/keywords.c" ]]; then
   rm "./src/ast/keywords.c";
 fi
 
-gperf --struct-type --omit-struct-type --slot-name=id --compare-strncmp --multiple-iterations=100 --switch=1 --readonly-tables --enum --pic --random --includes --lookup-function-name=lookup_keyword ./build/keywords.gperf --output-file=./src/ast/keywords.c
+gperf --struct-type --omit-struct-type --global-table --slot-name=id --compare-strncmp --multiple-iterations=100 --switch=1 --readonly-tables --enum --pic --random --includes --lookup-function-name=kw_lookup_str ./build/keywords.gperf --output-file=./src/ast/keywords.c
 

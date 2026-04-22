@@ -1,25 +1,19 @@
 #include "ast/symbol.h"
-#include "ast/token.h"
 #include "core_types.h"
 
-struct Keyword {
-  i32 id;
-  TokenType type;
-};
-
 bool is_keyword(const char* str, usize len) {
-  const Keyword* kw = lookup_keyword(str, len);
+  const Keyword* kw = kw_lookup_str(str, len);
   return is_not_null(kw);
 }
 
-
-const char* kw_string(const Keyword* self) {
-  
-}
-
 sslice kw_sslice(const Keyword* self) {
-  
+  const char* s = kw_string(self);
+  const i32 len = stringlen(s);
+  return sslice_new(s, len);
+    
 }
 
-
+const Keyword* kw_lookup(sslice str) {
+  return kw_lookup_str(str.begin, str.len);  
+}
 
