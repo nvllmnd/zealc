@@ -73,6 +73,10 @@ sslice lex_error_sslice(LexError err);
 
 CONST_FUNC
 RETURNS_NON_NULL
+const char* tokentype_string(TokenType tt);
+
+CONST_FUNC
+RETURNS_NON_NULL
 const char* lex_error_string(LexError err);
 
 /// Initialize a new LexState to tokenize a given string of zeal source code
@@ -89,3 +93,5 @@ LexError lexer_next(LexState* self, Token* next_token);
 /// returned state will allow for peeking next token without modifying current lexer state
 METHOD
 LexState lexer_peek_next(const LexState* self);
+
+

@@ -17,4 +17,4 @@
 #include "attributes.h"
 
 #include "memory/cstr.h"
-
+#include "core/log.h"

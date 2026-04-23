@@ -1,4 +1,4 @@
-
+dependencies += unity_dep
 
 strings_test = executable(
   'tests_strings',
@@ -40,3 +40,13 @@ allocators_test = executable(
 test('allocators', allocators_test)
 
 
+lex_parse_test = executable(
+  'tests_lex_parse',
+  files('../tests/lex_parse.c'),
+  include_directories: inc,
+  c_pch: '../pch/zeal_pch.h',
+  dependencies : dependencies,
+  install : true,  
+)
+
+test('lex_parse', lex_parse_test)

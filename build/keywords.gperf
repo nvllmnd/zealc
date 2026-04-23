@@ -47,5 +47,9 @@ const char* kw_string(const Keyword* self) {
 	const i32 i = self->id;
 	static constexpr const i32 POOLSIZE = (i32)sizeof(struct stringpool_t);
 	assert(i >= 0 && i <= POOLSIZE);
-	return (stringpool + self->id);
+	#if defined(NDEBUG)
+	(void)POOLSIZE;
+	#endif
+
+	return (stringpool + i);
 }

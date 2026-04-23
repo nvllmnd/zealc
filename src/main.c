@@ -1,28 +1,32 @@
 #include <stdio.h>
+#include "ast/lex.h"
 #include "log.h"
 #include "memory/cstr.h"
 
 #define PROJECT_NAME "zeal"
 
-int main(int argc, char **argv) {
-
-    UNUSED(argc);
-    UNUSED(argv);
-
-    // const i32 len = stringlen("ayooooooo");
-
-    // println("len: %d", len);
+int main(void) {
     
-    const char* s = "ayyyo this is a string that we going to slice";
-    const sslice sl = sslice_from_range(s, 0, 5);
+ static constexpr const char LANG_VALID_INPUT[] = "let x = 155;\nfn do_thing(n: i32) i32 {\n    return n;\n}\n   ";
+ static const sslice LANG_VALID_INPTU_SLICE = sslice_static_new(LANG_VALID_INPUT);
 
-    const cstr fstr = format_string("formatting into a cstr is: %s heres a number: %d", "working!", 69);
+  LexState lex = {};
+  lexer_init_source(&lex, sslice_static_new(LANG_VALID_INPUT));
 
-    sprintln(cstr_as_slice(&fstr));
+  Token t = {};
+  LexError err = LexError__Ok;
 
-    sprintln(sl);
-    println("slice len: %d", sl.len);
 
-    println("AYooo we printing! %s %d", "and wqe formatting!", 6969);
+  SLOG_DBG(LANG_VALID_INPTU_SLICE);
 
+  while(t.type != Token__Eof && err == LexError__Ok) {
+    err = lexer_next(&lex, &t);
+    SLOG_DBG(t.lexeme);
+  }
+
+  if (err != LexError__Ok) {
+      LOG_DBG("LEX ERROR: %s", lex_error_string(err));
+  }
+  
+  
 }

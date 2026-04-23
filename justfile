@@ -17,7 +17,7 @@ compiler := "clang"
 # Build type specific configurations
 debug_flags := "--buildtype=debug"
 
-release_flags := "--buildtype=release -Db_lto=true -Db_lto_threads=4 -Db_ndebug=true" 
+release_flags := "--buildtype='release' -Db_lto=true -Db_lto_threads=4 -Db_ndebug=true" 
 
 version_major := "0"
 version_minor := "1"
@@ -34,7 +34,7 @@ version_full :=  version_major + "." + version_minor + "." + version_patch
 # Force a sync of this projects version number.
 @sync-version:
 	rm .version; \
-	echo "{{version_full}}" >> .version; \
+	echo {{version_full}} >> .version; \
 	echo "{{project_name}} version synced to v{{version_full}}!";
 
 # Creates a symbolic link to debug build output compile_commands.json for IDE intellisense
@@ -49,7 +49,7 @@ version_full :=  version_major + "." + version_minor + "." + version_patch
 
 # Prints project project version
 @version:
-	echo "{{version_full}}"
+	echo {{version_full}}
 
 
 # Ensures our constant keyword hash table is generated
@@ -75,42 +75,54 @@ version_full :=  version_major + "." + version_minor + "." + version_patch
 
 # Create debug build dir + configure"
 @setup-debug: sync-version gen-keyword-hashes
-	if [ ! -d "{{debug_dir}}" ]; then \
+	if [ ! -d {{debug_dir}} ]; then \
 		echo "Setting up DEBUG build..."; \
-		mkdir -p "{{debug_dir}}"; \
-		CC="{{compiler}}" meson setup "{{debug_dir}}" "{{debug_flags}}";  \
+		mkdir -p {{debug_dir}}; \
+		CC={{compiler}} meson setup {{debug_dir}} {{debug_flags}};  \
 	else \
 		echo "Debug Build directory already exists!"; \
 		exit 0; \
 	fi
 
-#Create release build dir + configure"
+
 @setup-release: sync-version gen-keyword-hashes
-	if [ ! -d "{{release_dir}}" ]; then \
-		echo "Setting up RELASE build..."; \
-		mkdir -p "{{release_dir}}"; \
-		CC="{{compiler}}" meson setup "{{release_dir}}" "{{release_flags}}"; \ 
+	if [ ! -d {{release_dir}} ]; then \
+		echo "Setting up RELEASE build..."; \
+		mkdir -p {{release_dir}}; \
+		CC={{compiler}} meson setup {{release_dir}} {{release_flags}};  \
 	else \
 		echo "Release Build directory already exists!"; \
 		exit 0; \
 	fi
+	
+
+# #Create release build dir + configure"
+# @setup-release: sync-version gen-keyword-hashes
+# 	if [ ! -d "{{release_dir}}" ]; then \
+# 		echo "Setting up RELASE build..."; \
+# 		mkdir -p "{{release_dir}}"; \
+# 		CC="{{compiler}}" meson setup "{{release_dir}}" "{{release_flags}}"; \ 
+# 	else \
+# 		echo "Release Build directory already exists!"; \
+# 		exit 0; \
+# 	fi
 
 # Reconfigure existing builds
 @reconfig-debug:
-	test -d "{{debug_dir}}" && meson configure "{{debug_dir}}" "{{debug_flags}}" || just setup-debug
+	test -d {{debug_dir}} && meson configure {{debug_dir}} {{debug_flags}} || just setup-debug
 
 # Reconfigure existing builds
 @reconfig-release:
-	test -d "{{release_dir}}" && meson configure "{{release_dir}}" "{{release_flags}}" || just setup-release
+	test -d {{release_dir}} && meson configure {{release_dir}} {{release_flags}} || just setup-release
 
 #Compile debug build"
 @build-debug: setup-debug
-	meson compile -C "{{debug_dir}}"; \
+	meson compile -C {{debug_dir}}; \
 	just compile-commands-debug
 
 #Compile optimized release build
 @build-release: setup-release
-	meson compile -C "{{release_dir}}"; \
+	meson compile -C {{release_dir}}; \
 	just compile-commands-release
 
 #Run project (debug ) executable"
@@ -126,25 +138,25 @@ version_full :=  version_major + "." + version_minor + "." + version_patch
 # You can pass 'v', 'verbose' or 'interactive' as an argument to this rule for
 # meson to run tests with the '--interactive' flag
 @test-debug arg='none': build-debug
-	if [ "{{arg}}" = "verbose" ] || [ "{{arg}}" = "v" ] || [ "{{arg}}" = "interactive" ]; then \
-		meson test -C "{{debug_dir}}" --interactive; \
+	if [ {{arg}} = "verbose" ] || [ {{arg}} = "v" ] || [ {{arg}} = "interactive" ]; then \
+		meson test -C {{debug_dir}} --interactive --print-errorlogs; \
 	else \
-		meson test -C "{{debug_dir}}"; \
+		meson test -C {{debug_dir}}; \
 	fi
 
 
 # run meson tests in release mode
 @test-release arg='none': build-release
-	if [ "{{arg}}" = "verbose" ] || [ "{{arg}}" = "v" ] || [ "{{arg}}" = "interactive" ]; then \
-		meson test -C "{{release_dir}}" --interactive; \
+	if [ {{arg}} = "verbose" ] || [ {{arg}} = "v" ] || [ {{arg}} = "interactive" ]; then \
+		meson test -C {{release_dir}} --interactive --print-errorlogs; \
 	else \
-		meson test -C "{{release_dir}}"; \
+		meson test -C {{release_dir}}; \
 	fi
 
 
 # Clean both debug and release directories 
 @clean:
-	rm -rf "{{build_root}}"
+	rm -rf {{build_root}}
 
 # Re-build Project in debug. Runs clean then build
 @rebuild-debug: clean build-debug
@@ -155,7 +167,7 @@ version_full :=  version_major + "." + version_minor + "." + version_patch
 
 # Install release build to your systems standard directory
 @install: build-release
-	meson install -C "{{release_dir}}"
+	meson install -C {{release_dir}}
 
 
 # Shortcuts / Aliases

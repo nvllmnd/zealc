@@ -8,6 +8,7 @@
 
 #include "ast/token.h"
 #include "attributes.h"
+#include "log.h"
 #include "memory/cstr.h"
 
 // static constexpr const char INVALID_CHAR = cast(char, -125);
@@ -106,11 +107,21 @@ static LexError lexer_string(LexState* self, Token* tok);
 static const char* LEX_ERROR_STRINGS[_LexError__Count] = {
     STRINGIFY(LexError__Ok),
     STRINGIFY(LexError__UnexpectedCharacter),
+    STRINGIFY(LexError__UnexpectedCharacterInNumericToken),
     STRINGIFY(LexError__UnmatchedDoubleQuotString),
     STRINGIFY(LexError__UnmatchedSingleQuotString),
+    STRINGIFY(LexError__FailedToParseFloat0),
+    STRINGIFY(LexError__FailedToParseInt0),
+    STRINGIFY(LexError__FloatParseFail),
+    STRINGIFY(LexError__IntegerParseFail),
+    STRINGIFY(LexError__UnexpectedRunePrefix),
+    STRINGIFY(LexError__UnexpectedEscapeCharacter),
+    STRINGIFY(LexError__UnexpectedEndOfSource),
+    STRINGIFY(LexError__InvalidFloatingPointLiteral),
     STRINGIFY(LexError__IllegalIdentifier),
     STRINGIFY(LexError__FailedToOpenFile),
     STRINGIFY(LexError__InnerFileIO),
+    STRINGIFY(LexError__TokenTypeOutOfRange),
 };
 
 CONST_FUNC
@@ -151,6 +162,8 @@ static inline bool lexer_is_alpha_or_uscore(const LexState* self) {
 }
 
 LexError lexer_next(LexState* self, Token* next_token) {
+
+  // LOG_DBG("Lex cursor :: i = %d, col = %d, row = %d", self->cursor.i, self->cursor.col, self->cursor.row);
   lexer_whitespace_skip(self);
   *next_token = (Token){};
 
@@ -193,8 +206,9 @@ LexError lexer_next(LexState* self, Token* next_token) {
       return lexer_glyph(self, Token__Period, next_token);
     } break;
     case Token__Eq: {
-      // c = lexer_peekc_next();
-      c = lexer_next_peekc(self);
+
+      c = lexer_adv_peekc(self);
+
       switch (c) {
         case '>': {
           lexer_adv(self);
@@ -218,7 +232,7 @@ LexError lexer_next(LexState* self, Token* next_token) {
     // javascript...
     // case Token__SingleQuot: { } break;
     case Token__Bang: {
-      c = lexer_next_peekc(self);
+      c = lexer_adv_peekc(self);
       if (c == '=') {
         lexer_adv(self);
         return lexer_glyph(self, Token__BangEq, next_token);
@@ -227,7 +241,7 @@ LexError lexer_next(LexState* self, Token* next_token) {
       }
     } break;
     case Token__Percent: {
-      c = lexer_next_peekc(self);
+      c = lexer_adv_peekc(self);
       if (c == '=') {
         lexer_adv(self);
         return lexer_glyph(self, Token__PercentEq, next_token);
@@ -237,7 +251,7 @@ LexError lexer_next(LexState* self, Token* next_token) {
 
     } break;
     case Token__ChevronUp: {
-      c = lexer_next_peekc(self);
+      c = lexer_adv_peekc(self);
       if (c == '=') {
         lexer_adv(self);
         return lexer_glyph(self, Token__ChevronEq, next_token);
@@ -246,7 +260,7 @@ LexError lexer_next(LexState* self, Token* next_token) {
       }
     } break;
     case Token__Ampersand: {
-      c = lexer_next_peekc(self);
+      c = lexer_adv_peekc(self);
       if (c == '=') {
         lexer_adv(self);
         return lexer_glyph(self, Token__AmpersandEq, next_token);
@@ -255,7 +269,7 @@ LexError lexer_next(LexState* self, Token* next_token) {
       }
     } break;
     case Token__Star: {
-      c = lexer_next_peekc(self);
+      c = lexer_adv_peekc(self);
       if (c == '=') {
         lexer_adv(self);
         return lexer_glyph(self, Token__StarEq, next_token);
@@ -264,7 +278,7 @@ LexError lexer_next(LexState* self, Token* next_token) {
       }
     } break;
     case Token__Minus: {
-      c = lexer_next_peekc(self);
+      c = lexer_adv_peekc(self);
       switch (c) {
         case '=': {
           lexer_adv(self);
@@ -278,15 +292,9 @@ LexError lexer_next(LexState* self, Token* next_token) {
           return lexer_glyph(self, Token__Minus, next_token);
         } break;
       }
-      if (c == '=') {
-        lexer_adv(self);
-        return lexer_glyph(self, Token__MinusEq, next_token);
-      } else {
-        return lexer_glyph(self, Token__Minus, next_token);
-      }
     } break;
     case Token__Plus: {
-      c = lexer_next_peekc(self);
+      c = lexer_adv_peekc(self);
       if (c == '=') {
         lexer_adv(self);
         return lexer_glyph(self, Token__PlusEq, next_token);
@@ -295,7 +303,7 @@ LexError lexer_next(LexState* self, Token* next_token) {
       }
     } break;
     case Token__Pipe: {
-      c = lexer_next_peekc(self);
+      c = lexer_adv_peekc(self);
       switch (c) {
         case '|': {
           lexer_adv(self);
@@ -319,7 +327,7 @@ LexError lexer_next(LexState* self, Token* next_token) {
       return lexer_glyph(self, Token__Comma, next_token);
     } break;
     case Token__Gt: {
-      c = lexer_next_peekc(self);
+      c = lexer_adv_peekc(self);
       switch (c) {
         case '>': {
           lexer_adv(self);
@@ -335,7 +343,7 @@ LexError lexer_next(LexState* self, Token* next_token) {
       }
     } break;
     case Token__Lt: {
-      c = lexer_next_peekc(self);
+      c = lexer_adv_peekc(self);
       switch (c) {
         case '<': {
           lexer_adv(self);
@@ -363,7 +371,7 @@ LexError lexer_next(LexState* self, Token* next_token) {
       return lexer_glyph(self, Token__Semicolon, next_token);
     } break;
     case Token__Colon: {
-      c = lexer_next_peekc(self);
+      c = lexer_adv_peekc(self);
       if (c == ':') {
         lexer_adv(self);
         return lexer_glyph(self, Token__DoubleColon, next_token);
@@ -380,7 +388,7 @@ LexError lexer_next(LexState* self, Token* next_token) {
 
     } break;
     case Token__ForwardSlash: {
-      c = lexer_next_peekc(self);
+      c = lexer_adv_peekc(self);
       if (c == '=') {
         lexer_adv(self);
         return lexer_glyph(self, Token__ForwardSlashEq, next_token);
@@ -402,7 +410,7 @@ LexError lexer_next(LexState* self, Token* next_token) {
 
   } else if (isdigit(c)) {
     return lexer_integer(self, next_token);
-  } 
+  }
 
   return LexError__UnexpectedCharacter;
 }
@@ -509,7 +517,7 @@ static const char* TOKEN_TYPE_GLYPH_STRINGS[Token__GlyphsCount] = {
     // Token__ForwardSlashEq,
     "/=",
     // Token__DblBackSlash,
-    "\\",
+    "\\\\",
     // Token__DblColon,
     "::",
     // Token__LtEq,
@@ -573,8 +581,55 @@ sslice tokentype_glyph_sslice(TokenType tt) {
   return sslice_new(s, len);
 }
 
+static inline const char* tokentype_uglyph_string(TokenType tt) {
+  // this should catch any possible errors, but really this branch should never be taken, as if it is
+  // that would be a logic error
+  if (UNLIKELY(!ispunct(tt))) {
+    return nullptr;
+  }
+
+  switch (tt) {
+    case Token__OpenBrace: return "{";
+    case Token__CloseBrace: return "}";
+    case Token__OpenParen: return "(";
+    case Token__CloseParen: return ")";
+    case Token__OpenBracket: return "[";
+    case Token__CloseBracket: return "]";
+    case Token__DoubleQuot: return "\"";
+    case Token__SingleQuot: return "\''";
+    case Token__Bang: return "!";
+    case Token__Percent: return "%";
+    case Token__ChevronUp: return "^";
+    case Token__Ampersand: return "&";
+    case Token__Star: return "*";
+    case Token__Minus: return "-";
+    case Token__Plus: return "+";
+    case Token__UnaryUnderscore: return "_";
+    case Token__Eq: return "=";
+    case Token__Pipe: return "|";
+    case Token__Comma: return ",";
+    case Token__Period: return ".";
+    case Token__Gt: return ">";
+    case Token__Lt: return "<";
+    case Token__Semicolon: return ";";
+    case Token__Colon: return ":";
+    case Token__BackSlash: return "\\";
+    case Token__ForwardSlash: return "/";
+    case Token__QMark: return "?";
+    default: {
+      assert(false);
+      return nullptr;
+      // UNREACHABLE_RETURN(nullptr);
+      // return nullptr;
+    } break; 
+  }
+}
+
 const char* tokentype_glyph_string(TokenType tt) {
-  if (tt > Token__GlyphStart && tt < Token__GlyphsEnd) {
+  if (ispunct(tt)) {
+    return tokentype_uglyph_string(tt);
+  }
+  if (tokentype_is_glyph(tt)) {
     const i32 i = (tt - (Token__GlyphStart + 1));
     assert(i >= 0 && i < Token__GlyphsCount);
     return TOKEN_TYPE_GLYPH_STRINGS[i];
@@ -640,7 +695,7 @@ static LexError lexer_identifier(LexState* self, Token* tok) {
       c = lexer_peekc(self);
     } while (isalnum(c) || c == '_');
 
-    const i32 end = self->cursor.i - 1;
+    const i32 end = self->cursor.i;
     tok->lexeme = lexer_slice(self, start, end);
 
     // tok->type = Token__Identifier;
@@ -790,6 +845,7 @@ static LexError lexer_rune(LexState* self, Token* tok) {
 
 PARAMS_NONNULL(1, 3)
 static LexError lexer_glyph(LexState* self, TokenType tt, Token* tok) {
+  // LOG_DBG("LEXER :: Creating glyph for token type: %s", tokentype_string(tt));
   if (LIKELY(tokentype_is_glyph(tt))) {
     tok->type = tt;
     tok->lexeme = tokentype_glyph_sslice(tt);
@@ -829,4 +885,231 @@ static LexError lexer_string(LexState* self, Token* tok) {
 
 bool tokentype_is_keyword(TokenType self) { return self > Token__KeywordsStart && self < Token__KeywordsEnd; }
 
-bool tokentype_is_glyph(TokenType self) { return self > Token__GlyphStart && self < Token__GlyphsEnd; }
+bool tokentype_is_glyph(TokenType self) { return (self > Token__GlyphStart && self < Token__GlyphsEnd) || (ispunct(self)); }
+
+const char* tokentype_string(TokenType tt) {
+  /// const string for TokenType variants that are used for bounds checking and counting the sizes of each sections
+  /// variants, i.e. [Token__LiteralStart], [Token__LiteralEnd], [Token__GlyphsStart] [Token__GLyphsEnd],
+  /// [Token__GlyphsCount], ect...
+  static constexpr const char TT_CONST[] = "TOKENTYPE_CONST";
+
+  switch (tt) {
+    case Token__CannotGetStringOfNonGlyph:
+      return STRINGIFY(Token__CannotGetStringOfNonGlyph);
+    case Token__CannotGetStringOfNonKeyword:
+      return STRINGIFY(Token__CannotGetStringOfNonKeyword);
+    case Token__Eof:
+      return STRINGIFY(Token__Eof);
+    case Token__Identifier:
+      return STRINGIFY(Token__Identifier);
+    case Token__LiteralStart:
+      return TT_CONST;
+    case Token__Int:
+      return STRINGIFY(Token__Int);
+    case Token__Float:
+      return STRINGIFY(Token__Float);
+    case Token__String:
+      return STRINGIFY(Token__String);
+    case Token__Rune:
+      return STRINGIFY(Token__Rune);
+    case Token__LiteralEnd:
+      return TT_CONST;
+    case Token__OpenBrace:
+      return STRINGIFY(Token__OpenBrace);
+    case Token__CloseBrace:
+      return STRINGIFY(Token__CloseBrace);
+    case Token__OpenParen:
+      return STRINGIFY(Token__OpenParen);
+    case Token__CloseParen:
+      return STRINGIFY(Token__CloseParen);
+    case Token__OpenBracket:
+      return STRINGIFY(Token__OpenBracket);
+    case Token__CloseBracket:
+      return STRINGIFY(Token__CloseBracket);
+    case Token__DoubleQuot:
+      return STRINGIFY(Token__DoubleQuot);
+    case Token__SingleQuot:
+      return STRINGIFY(Token__SingleQuot);
+    case Token__Bang:
+      return STRINGIFY(Token__Bang);
+    case Token__Percent:
+      return STRINGIFY(Token__Percent);
+    case Token__ChevronUp:
+      return STRINGIFY(Token__ChevronUp);
+    case Token__Ampersand:
+      return STRINGIFY(Token__Ampersand);
+    case Token__Star:
+      return STRINGIFY(Token__Star);
+    case Token__Minus:
+      return STRINGIFY(Token__Minus);
+    case Token__Plus:
+      return STRINGIFY(Token__Plus);
+    case Token__UnaryUnderscore:
+      return STRINGIFY(Token__UnaryUnderscore);
+    case Token__Eq:
+      return STRINGIFY(Token__Eq);
+    case Token__Pipe:
+      return STRINGIFY(Token__Pipe);
+    case Token__Comma:
+      return STRINGIFY(Token__Comma);
+    case Token__Period:
+      return STRINGIFY(Token__Period);
+    case Token__Gt:
+      return STRINGIFY(Token__Gt);
+    case Token__Lt:
+      return STRINGIFY(Token__Lt);
+    case Token__Semicolon:
+      return STRINGIFY(Token__Semicolon);
+    case Token__Colon:
+      return STRINGIFY(Token__Colon);
+    case Token__BackSlash:
+      return STRINGIFY(Token__BackSlash);
+    case Token__ForwardSlash:
+      return STRINGIFY(Token__ForwardSlash);
+    case Token__QMark:
+      return STRINGIFY(Token__QMark);
+    case Token__GlyphStart:
+      return STRINGIFY(Token__GlyphStart);
+    case Token__StarEq:
+      return STRINGIFY(Token__StarEq);
+    case Token__AmpersandEq:
+      return STRINGIFY(Token__AmpersandEq);
+    case Token__PercentEq:
+      return STRINGIFY(Token__PercentEq);
+    case Token__BangEq:
+      return STRINGIFY(Token__BangEq);
+    case Token__DoubleEq:
+      return STRINGIFY(Token__DoubleEq);
+    case Token__PlusEq:
+      return STRINGIFY(Token__PlusEq);
+    case Token__MinusEq:
+      return STRINGIFY(Token__MinusEq);
+    case Token__DblQMark:
+      return STRINGIFY(Token__DblQMark);
+    case Token__DblForwardSlash:
+      return STRINGIFY(Token__DblForwardSlash);
+    case Token__ForwardSlashEq:
+      return STRINGIFY(Token__ForwardSlashEq);
+    case Token__DoubleBackSlash:
+      return STRINGIFY(Token__DoubleBackSlash);
+    case Token__DoubleColon:
+      return STRINGIFY(Token__DoubleColon);
+    case Token__LtEq:
+      return STRINGIFY(Token__LtEq);
+    case Token__GtEq:
+      return STRINGIFY(Token__GtEq);
+    case Token__Elipses:
+      return STRINGIFY(Token__Elipses);
+    case Token__DoublePipe:
+      return STRINGIFY(Token__DoublePipe);
+    case Token__EmptyParen:
+      return STRINGIFY(Token__EmptyParen);
+    case Token__EmptyBracket:
+      return STRINGIFY(Token__EmptyBracket);
+    case Token__EmptyBrace:
+      return STRINGIFY(Token__EmptyBrace);
+    case Token__ArrowRight:
+      return STRINGIFY(Token__ArrowRight);
+    case Token__ArrowLeft:
+      return STRINGIFY(Token__ArrowLeft);
+    case Token__FatArrow:
+      return STRINGIFY(Token__FatArrow);
+    case Token__ChevronEq:
+      return STRINGIFY(Token__ChevronEq);
+    case Token__PipeEq:
+      return STRINGIFY(Token__PipeEq);
+    case Token__PipeRight:
+      return STRINGIFY(Token__PipeRight);
+    case Token__PipeLeft:
+      return STRINGIFY(Token__PipeLeft);
+    case Token__ShiftRight:
+      return STRINGIFY(Token__ShiftRight);
+    case Token__ShiftLeft:
+      return STRINGIFY(Token__ShiftLeft);
+    case Token__GlyphsEnd:
+      return TT_CONST;
+    case Token__GlyphsCount:
+      return TT_CONST;
+    case Token__Comment:
+      return STRINGIFY(Token__Comment);
+    case Token__KeywordsStart:
+      return TT_CONST;
+    case Token__True:
+      return STRINGIFY(Token__True);
+    case Token__False:
+      return STRINGIFY(Token__False);
+    case Token__Let:
+      return STRINGIFY(Token__Let);
+    case Token__If:
+      return STRINGIFY(Token__If);
+    case Token__Else:
+      return STRINGIFY(Token__Else);
+    case Token__Mut:
+      return STRINGIFY(Token__Mut);
+    case Token__When:
+      return STRINGIFY(Token__When);
+    case Token__Fn:
+      return STRINGIFY(Token__Fn);
+    case Token__Struct:
+      return STRINGIFY(Token__Struct);
+    case Token__Trait:
+      return STRINGIFY(Token__Trait);
+    case Token__Impl:
+      return STRINGIFY(Token__Impl);
+    case Token__And:
+      return STRINGIFY(Token__And);
+    case Token__Or:
+      return STRINGIFY(Token__Or);
+    case Token__Return:
+      return STRINGIFY(Token__Return);
+    case Token__Self:
+      return STRINGIFY(Token__Self);
+    case Token__Const:
+      return STRINGIFY(Token__Const);
+    case Token__Loop:
+      return STRINGIFY(Token__Loop);
+    case Token__For:
+      return STRINGIFY(Token__For);
+    case Token__While:
+      return STRINGIFY(Token__While);
+    case Token__Break:
+      return STRINGIFY(Token__Break);
+    case Token__Match:
+      return STRINGIFY(Token__Match);
+    case Token__Continue:
+      return STRINGIFY(Token__Continue);
+    case Token__Pub:
+      return STRINGIFY(Token__Pub);
+    case Token__Ref:
+      return STRINGIFY(Token__Ref);
+    case Token__Error:
+      return STRINGIFY(Token__Error);
+    case Token__Enum:
+      return STRINGIFY(Token__Enum);
+    case Token__Type:
+      return STRINGIFY(Token__Type);
+    case Token__Await:
+      return STRINGIFY(Token__Await);
+    case Token__Comptime:
+      return STRINGIFY(Token__Comptime);
+    case Token__Static:
+      return STRINGIFY(Token__Static);
+    case Token__Mod:
+      return STRINGIFY(Token__Mod);
+    case Token__Macro:
+      return STRINGIFY(Token__Macro);
+    case Token__Derive:
+      return STRINGIFY(Token__Derive);
+    case Token__Dyn:
+      return STRINGIFY(Token__Dyn);
+    case Token__Default:
+      return STRINGIFY(Token__Default);
+    case Token__Sizeof:
+      return STRINGIFY(Token__Sizeof);
+    case Token__KeywordsEnd:
+      [[fallthrough]];
+    case Token__KeywordCount:
+      return TT_CONST;
+      break;
+  }
+}

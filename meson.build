@@ -29,7 +29,6 @@ unity_dep = dependency('unity')
 dependencies = [
   hedley_dep,
   mimalloc_dep,
-  unity_dep
 ]
 
 inc = include_directories(

@@ -60,13 +60,13 @@ static constexpr const i32 _TOKENC_GLYPHS_START = (1 << 12);
 typedef enum TokenType : i32 {
   /// A variant of this enum was passed to [token_type_glpyh_string] that
   /// falls out of range of the multi-character glyhps
-  Token__CannotGetStringOfNonGlyph = -2,
+  Token__CannotGetStringOfNonGlyph = -3,
   /// A variant of this enum was passed to [token_type_keyword_string] that
   /// falls out of range of the keyword TokenType constants
-  Token__CannotGetStringOfNonKeyword = -1,
+  Token__CannotGetStringOfNonKeyword = -2,
   /// No Token has been parsed. Lexer encountered an error, or has reached EOF
-  Token__Eof = 0,
-  Token__Identifier,
+  Token__Eof = -1,
+  Token__Identifier = 0,
   Token__LiteralStart,
   /// true/false
   // Token__Bool,

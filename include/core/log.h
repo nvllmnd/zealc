@@ -24,7 +24,8 @@ typedef enum FormatError {
   Format__Ok = 0
 } FormatError;
 
-FormatError i64_into_str(i64 n, char* dst, i32 dst_len);
+
+// FormatError i64_into_str(i64 n, char* dst, i32 dst_len);
 
 /// Creates a string representation of a given i64 integer into a
 /// new [cstr]. This function is guaranteed to not allocate. However,
@@ -92,10 +93,26 @@ void seprint(sslice str);
 
 void seprintln(sslice str);
 
-// #define sprint(slice) (sfprint(stdout, (slice)))
 
-// #define sprintln(slice) (sfprintln(stdout, (slice)))
+#if defined(NDEBUG)
 
-// #define seprint(slice) (sfprint(stderr, (slice)))
-// #define seprintln(slice) (sfprintln(stderr, (slice)))
+#define LOG_DBG(fmt, ...) ((void)fmt)/* inactive in release builds (NDEBUG == 1) */
+
+#define ELOG_DBG(fmt, ...) ((void)fmt) /* inactive in release builds (NDEBUG == 1) */
+
+#define SLOG_DBG(slice) ((void)slice)/* inactive in release builds (NDEBUG == 1) */
+
+#define SELOG_DBG(slice) ((void)slice)/* inactive in release builds (NDEBUG == 1) */
+
+#else
+
+#define LOG_DBG(fmt, ...) (println(fmt __VA_OPT__(,) __VA_ARGS__))
+#define ELOG_DBG(fmt, ...) (eprintln(fmt __VA_OPT__(,) __VA_ARGS__))
+
+#define SLOG_DBG(slice) (sprintln((slice)))
+#define SELOG_DBG(slice) (seprintln((slice)))
+
+#endif
+
+
 
