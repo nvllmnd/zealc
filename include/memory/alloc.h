@@ -55,15 +55,17 @@ static inline bool alloc_is_ok(void* ptr) { return alloc_result(ptr) >= Allocati
 ///
 /// void* self  - Pointer to self (may be null if Allocator has no state!)
 ///              Typically you will cast this to your derived Allocator type in this method implementation
-/// usize size  - Size of allocation requested in bytes
-typedef void* (*const VTableAllocate)(void* self, isize size);
+/// isize size  - Size of allocation requested in bytes
+/// isize align - Alignment of allocation requested. Must be a power of 2!
+typedef void* (*const VTableAllocate)(void* self, isize size, isize align);
 /// Function pointer typedef for [Allocator] [AllocVTable] reallocate method
 ///
 /// void* self     - Pointer to self (may be null if Allocator has no state!)
 ///                  Typically you will cast this to your derived Allocator type in this method implementation
 /// void* ptr      - Pointer to begging of block of memory to be reallocated
-/// usize new_size - Size of requested reallocation in bytes
-typedef void* (*const VTableReallocate)(void* self, void* ptr, isize new_size);
+/// isize new_size - Size of requested reallocation in bytes
+/// isize align - Alignment of allocation requested. Must be a power of 2! 
+typedef void* (*const VTableReallocate)(void* self, void* ptr, isize new_size, isize align);
 
 /// Function pointer typedef for [Allocator] [AllocVTable] zallocate method
 /// This is the same as [VTableAllocate], but ensures allocated memory is zeroed
@@ -71,7 +73,8 @@ typedef void* (*const VTableReallocate)(void* self, void* ptr, isize new_size);
 /// void* self  - Pointer to self (may be null if Allocator has no state!)
 ///               Typically you will cast this to your derived Allocator type in this method implementation
 /// usize size  - Size of allocation requested in bytes
-typedef void* (*const VTableZallocate)(void* self, isize size);
+/// isize align - Alignment of allocation requested. Must be a power of 2!
+typedef void* (*const VTableZallocate)(void* self, isize size, isize align);
 
 /// Function pointer typedef for [Allocator] [AllocVTable] expand method
 /// This is the same as [VTableReallocate], but does nothing  if
@@ -111,9 +114,9 @@ const AllocVTable* global_allocator_vtable(void);
 
 #define alloc_vtable_new(...) ((AllocVTable){__VA_ARGS__})
 
-void* vtable_alloc_no_impl(void*, isize);
-void* vtable_realloc_no_impl(void*, void*, isize);
-void* vtable_zalloc_no_impl(void*, isize);
+void* vtable_alloc_no_impl(void*, isize, isize);
+void* vtable_realloc_no_impl(void*, void*, isize, isize);
+void* vtable_zalloc_no_impl(void*, isize, isize);
 void* vtable_expand_no_impl(void*, void*, isize);
 void vtable_free_no_impl(void*, void*);
 
@@ -141,18 +144,18 @@ Allocator global_allocator(void);
 /// Do note that if given [Allocator] interface struct's do not always implement all function on the [AllocVTable]
 /// vtable. as such, if any particular Allocator Vtable call returns ((void*)-1)
 [[nodiscard("Must not discard pointer returned from allocator! possible memory leak!")]]
-static inline void* allocator_allocate(Allocator self, isize size) {
-  return self.vtable->allocate(self.ctx, size);
+static inline void* allocator_allocate(Allocator self, isize size, isize align) {
+  return self.vtable->allocate(self.ctx, size, align);
 }
 
 [[nodiscard("Must not discard pointer returned from allocator! possible memory leak!")]]
-static inline void* allocator_reallocate(Allocator self, void* ptr, isize new_size) {
-  return self.vtable->reallocate(self.ctx, ptr, new_size);
+static inline void* allocator_reallocate(Allocator self, void* ptr, isize new_size, isize align) {
+  return self.vtable->reallocate(self.ctx, ptr, new_size, align);
 }
 
 [[nodiscard("Must not discard pointer returned from allocator! possible memory leak!")]]
-static inline void* allocator_zallocate(Allocator self, isize size) {
-  return self.vtable->zallocate(self.ctx, size);
+static inline void* allocator_zallocate(Allocator self, isize size, isize align) {
+  return self.vtable->zallocate(self.ctx, size, align);
 }
 
 [[nodiscard("Must not discard pointer returned from allocator! possible memory leak!")]]
@@ -172,11 +175,11 @@ typedef struct HeapAllocator HeapAllocator;
 HeapAllocator heap_allocator_new(void);
 
 /// forwards call  to [mi_heap_malloc]
-void* heap_allocator_malloc(HeapAllocator self, isize size);
+void* heap_allocator_malloc(HeapAllocator self, isize size, isize align);
 /// forwards call to [mi_heap_realloc]
-void* heap_allocator_realloc(HeapAllocator self, void* ptr, isize new_size);
+void* heap_allocator_realloc(HeapAllocator self, void* ptr, isize new_size, isize align);
 /// forwards call to [mi_heap_zalloc]
-void* heap_allocator_zalloc(HeapAllocator self, isize size);
+void* heap_allocator_zalloc(HeapAllocator self, isize size, isize align);
 /// forwards call to [mi_expand]
 void* heap_allocator_expand(HeapAllocator self, void* ptr, isize new_size);
 /// forwwards call to [mi_free]
@@ -253,14 +256,14 @@ PURE_FUNC
 static inline bool arena_is_ok(const Arena* self) { return self && self->mem && self->capacity > 0; }
 
 METHOD
-void* arena_allocate(Arena* self, isize size);
+void* arena_allocate(Arena* self, isize size, isize align);
 
 /// Same as [arena_allocate], but ensure memory is zeroed.
 /// [Arena] initially use [mi_calloc] to allocate the memory buffer, so
 /// memory is zeroed already initially, but if [arena_clear] was called instead of [arena_clear_zeroed],
 /// then there is a possiblity that memory might not be zeroed
 METHOD
-void* arena_zallocate(Arena* self, isize size);
+void* arena_zallocate(Arena* self, isize size, isize align);
 
 CONST_FUNC
 const AllocVTable* arena_alloc_vtable(void);

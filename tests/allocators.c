@@ -24,7 +24,7 @@ void global_allocator_trait(void) {
 
   TEST_ASSERT_NOT_NULL(g.vtable->allocate);
 
-  u8* mem = allocator_allocate(g, 64);
+  u8* mem = allocator_allocate(g, 64, alignof(u8[64]));
   TEST_ASSERT_NOT_NULL(mem);
 
   TEST_ASSERT_NOT_NULL(g.vtable->free);

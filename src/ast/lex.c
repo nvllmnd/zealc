@@ -6,9 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ast/symbol.h"
 #include "ast/token.h"
 #include "attributes.h"
-#include "log.h"
+#include "core_types.h"
 #include "memory/cstr.h"
 
 // static constexpr const char INVALID_CHAR = cast(char, -125);
@@ -138,6 +139,11 @@ void lexer_init_source(LexState* self, sslice source_string) {
   self->cursor = (Cursor){};
 }
 
+void lexer_reset_source(LexState* self, sslice source_string) {
+  *self = make_zeroed(LexState);
+  lexer_init_source(self, source_string);
+}
+
 METHOD
 PURE_FUNC
 static inline bool lexer_is_rune(const LexState* self) {
@@ -162,7 +168,6 @@ static inline bool lexer_is_alpha_or_uscore(const LexState* self) {
 }
 
 LexError lexer_next(LexState* self, Token* next_token) {
-
   // LOG_DBG("Lex cursor :: i = %d, col = %d, row = %d", self->cursor.i, self->cursor.col, self->cursor.row);
   lexer_whitespace_skip(self);
   *next_token = (Token){};
@@ -206,7 +211,6 @@ LexError lexer_next(LexState* self, Token* next_token) {
       return lexer_glyph(self, Token__Period, next_token);
     } break;
     case Token__Eq: {
-
       c = lexer_adv_peekc(self);
 
       switch (c) {
@@ -406,7 +410,20 @@ LexError lexer_next(LexState* self, Token* next_token) {
     return lexer_rune(self, next_token);
 
   } else if (lexer_is_alpha_or_uscore(self)) {
-    return lexer_identifier(self, next_token);
+    LexError err = lexer_identifier(self, next_token);
+    if (err != LexError__Ok) {
+      return err;
+    }
+
+    const sslice lexeme = next_token->lexeme;
+
+    // check if this identifier is a Zeal Language Reserved Keyword
+    const Keyword* kw = kw_lookup_str(lexeme.begin, lexeme.len);
+    if (is_not_null(kw)) {
+      next_token->type = kw->type;
+    }
+    // if not then we know this is still a valid tokenized identifier
+    return LexError__Ok;
 
   } else if (isdigit(c)) {
     return lexer_integer(self, next_token);
@@ -589,39 +606,66 @@ static inline const char* tokentype_uglyph_string(TokenType tt) {
   }
 
   switch (tt) {
-    case Token__OpenBrace: return "{";
-    case Token__CloseBrace: return "}";
-    case Token__OpenParen: return "(";
-    case Token__CloseParen: return ")";
-    case Token__OpenBracket: return "[";
-    case Token__CloseBracket: return "]";
-    case Token__DoubleQuot: return "\"";
-    case Token__SingleQuot: return "\''";
-    case Token__Bang: return "!";
-    case Token__Percent: return "%";
-    case Token__ChevronUp: return "^";
-    case Token__Ampersand: return "&";
-    case Token__Star: return "*";
-    case Token__Minus: return "-";
-    case Token__Plus: return "+";
-    case Token__UnaryUnderscore: return "_";
-    case Token__Eq: return "=";
-    case Token__Pipe: return "|";
-    case Token__Comma: return ",";
-    case Token__Period: return ".";
-    case Token__Gt: return ">";
-    case Token__Lt: return "<";
-    case Token__Semicolon: return ";";
-    case Token__Colon: return ":";
-    case Token__BackSlash: return "\\";
-    case Token__ForwardSlash: return "/";
-    case Token__QMark: return "?";
+    case Token__OpenBrace:
+      return "{";
+    case Token__CloseBrace:
+      return "}";
+    case Token__OpenParen:
+      return "(";
+    case Token__CloseParen:
+      return ")";
+    case Token__OpenBracket:
+      return "[";
+    case Token__CloseBracket:
+      return "]";
+    case Token__DoubleQuot:
+      return "\"";
+    case Token__SingleQuot:
+      return "\''";
+    case Token__Bang:
+      return "!";
+    case Token__Percent:
+      return "%";
+    case Token__ChevronUp:
+      return "^";
+    case Token__Ampersand:
+      return "&";
+    case Token__Star:
+      return "*";
+    case Token__Minus:
+      return "-";
+    case Token__Plus:
+      return "+";
+    case Token__UnaryUnderscore:
+      return "_";
+    case Token__Eq:
+      return "=";
+    case Token__Pipe:
+      return "|";
+    case Token__Comma:
+      return ",";
+    case Token__Period:
+      return ".";
+    case Token__Gt:
+      return ">";
+    case Token__Lt:
+      return "<";
+    case Token__Semicolon:
+      return ";";
+    case Token__Colon:
+      return ":";
+    case Token__BackSlash:
+      return "\\";
+    case Token__ForwardSlash:
+      return "/";
+    case Token__QMark:
+      return "?";
     default: {
       assert(false);
       return nullptr;
       // UNREACHABLE_RETURN(nullptr);
       // return nullptr;
-    } break; 
+    } break;
   }
 }
 
@@ -885,7 +929,9 @@ static LexError lexer_string(LexState* self, Token* tok) {
 
 bool tokentype_is_keyword(TokenType self) { return self > Token__KeywordsStart && self < Token__KeywordsEnd; }
 
-bool tokentype_is_glyph(TokenType self) { return (self > Token__GlyphStart && self < Token__GlyphsEnd) || (ispunct(self)); }
+bool tokentype_is_glyph(TokenType self) {
+  return (self > Token__GlyphStart && self < Token__GlyphsEnd) || (ispunct(self));
+}
 
 const char* tokentype_string(TokenType tt) {
   /// const string for TokenType variants that are used for bounds checking and counting the sizes of each sections
@@ -1027,7 +1073,7 @@ const char* tokentype_string(TokenType tt) {
     case Token__ShiftLeft:
       return STRINGIFY(Token__ShiftLeft);
     case Token__GlyphsEnd:
-      return TT_CONST;
+      [[fallthrough]];
     case Token__GlyphsCount:
       return TT_CONST;
     case Token__Comment:

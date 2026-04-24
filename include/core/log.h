@@ -64,7 +64,7 @@ FormatError format_with(char* dst, isize dst_len, const char* fmt, ...);
 #define println(fmt, ...) (fprintln(stdout, fmt, __VA_ARGS__))
 // (fprintf(stdout, fmt "\n" __VA_OPT__(, ) __VA_ARGS__))
 
-#define eprintln(fmt, ...) (fprintln(stdout, fmt, __VA_ARGS__))
+#define eprintln(fmt, ...) (fprintln(stderr, fmt, __VA_ARGS__))
 
 /// Prints a given string [sslice] to
 /// a file. This is a verstion of [fdprint] that does not require
@@ -114,5 +114,19 @@ void seprintln(sslice str);
 
 #endif
 
+HEDLEY_NO_RETURN
+FORMAT_FUNC(1, 2)
+void log_fatal(const char* fmt, ...);
 
+typedef enum RuntimePanic : i32 {
+  Panic__OutOfMemory = -(0x404379),
+  Panic__NullPointerUnexpected,
+  Panic__ExpectedSomeWhenThereWasNone,
+  Panic__ConditionFailure,
+  Panic__ExceptionType,
+  Panic__UnexpectedProgramState,
+  Panic__SystemError,
+} RuntimePanic;
 
+HEDLEY_NO_RETURN
+void panic_abort(RuntimePanic err);

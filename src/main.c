@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "ast/lex.h"
 #include "log.h"
 #include "memory/cstr.h"

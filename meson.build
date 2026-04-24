@@ -62,6 +62,7 @@ memory_lib = static_library(
   files(
     'src/memory/cstr.c',
     'src/memory/alloc.c',
+    'src/memory/arena.c',
   ),
   include_directories: inc,
   dependencies: dependencies,
@@ -87,6 +88,7 @@ ast_lib = static_library(
     'src/ast/parser.c',
     'src/ast/keywords.c',
     'src/ast/symbol.c',
+    'src/ast/ast.c',
   ),
   include_directories: inc,
   dependencies: dependencies,

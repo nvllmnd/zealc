@@ -2,6 +2,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "memory/cstr.h"
@@ -113,3 +114,49 @@ void seprintln(sslice str) {
   stderr_write(str.begin, str.len);
   stderr_write(NL, NL_SIZE);
 }
+
+
+void log_fatal(const char* fmt, ...) {
+ va_list args; 
+ va_start(args);
+
+
+ vfprintf(stderr, fmt, args);
+
+ va_end(args);
+ 
+  exit(1); 
+}
+
+void panic_abort(RuntimePanic err) {
+  const char* s = nullptr;
+
+
+  switch (err) {
+    case Panic__OutOfMemory: {
+        s = STRINGIFY(Panic__OutOfMemory);
+      } break;
+    case Panic__NullPointerUnexpected: {
+        s = STRINGIFY(Panic__NullPointerUnexpected);
+      } break;
+    case Panic__ExpectedSomeWhenThereWasNone: {
+        s = STRINGIFY(Panic__ExpectedSomeWhenThereWasNone);
+      } break;
+    case Panic__ConditionFailure: {
+        s = STRINGIFY(Panic__ConditionFailure);
+      } break;
+    case Panic__ExceptionType: {
+        s = STRINGIFY(Panic__ExceptionType);
+      } break;
+    case Panic__UnexpectedProgramState: {
+        s = STRINGIFY(Panic__UnexpectedProgramState); 
+      } break;
+    case Panic__SystemError: [[fallthrough]];
+    default: {
+      s =  STRINGIFY(Panic__SystemError);
+    } break;
+  }
+
+  log_fatal("%s", s);
+}
+

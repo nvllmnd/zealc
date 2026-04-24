@@ -14,9 +14,8 @@ struct Cursor {
   i32 col;
 };
 typedef struct Cursor Cursor;
-
-/// asdf
 typedef Cursor SourceLocation;
+
 /// Constant used to shift TokenTypes joined together, so that the assigned enum is indeed unique to this enum set
 /// i.e.:
 /// ```c
@@ -33,29 +32,9 @@ typedef Cursor SourceLocation;
 /// const bool has_bang = ((token_type >> _TOKENC_SHIFT) & Token__Bang) == Token__Bang;
 ///
 ///
-
 static constexpr const i32 _TOKENC_KEYWORDS_START = (1 << 16);
 static constexpr const i32 _TOKENC_GLYPHS_START = (1 << 12);
 
-// #define _TOKENC_KW2(a, b) (((a) << 24) | ((b) << 20))
-// #define _TOKENC_KW3(a, b, c) (((a) << 24) | ((b) << 20) | ((c) << 16))
-// #define _TOKENC_KW4(a, b, c, d) (((a) << 24) | ((b) << 20) | ((c) << 16) | ((d) << 12))
-// #define _TOKENC_KW5(a, b, c, d, e) (((a) << 24) | ((b) << 20) | ((c) << 16) | ((d) << 12) | ((e) << 8))
-// #define _TOKENC_KW6(a, b, c, d, e, f) (((a) << 24) | ((b) << 20) | ((c) << 16) | ((d) << 12) | ((e) << 8) | ((f) <<
-// 4))
-
-// #define _TOKENC_KW7(a, b, c, d, e, f, g) \
-//   (((a) << 24) | ((b) << 20) | ((c) << 16) | ((d) << 12) | ((e) << 8) | ((f) << 4) | (g) )
-
-// // #define _TOKENC_KW8(a, b, c, d, e, f, g, h) \
-// //   (((a) << 28) | ((b) << 24) | ((c) << 20) | ((d) << 16) | ((e) << 12) | ((f) << 8) | ((g) << 4) | (h))
-
-// #define _TOKENC_KEYWORD2(kw) (_TOKENC_KW2((#kw)[0], (#kw)[1]))
-// #define _TOKENC_KEYWORD3(kw) (_TOKENC_KW3((#kw)[0], (#kw)[1], (#kw)[2]))
-// #define _TOKENC_KEYWORD4(kw) (_TOKENC_KW3((#kw)[0], (#kw)[1], (#kw)[2], (#kw)[3]))
-// #define _TOKENC_KEYWORD5(kw) (_TOKENC_KW3((#kw)[0], (#kw)[1], (#kw)[2], (#kw)[3], (#kw)[4]))
-// #define _TOKENC_KEYWORD6(kw) (_TOKENC_KW3((#kw)[0], (#kw)[1], (#kw)[2], (#kw)[3], (#kw)[4], (#kw)[5]))
-// #define _TOKENC_KEYWORD7(kw) (_TOKENC_KW3((#kw)[0], (#kw)[1], (#kw)[2], (#kw)[3], (#kw)[4], (#kw)[5], (#kw)[6]))
 
 typedef enum TokenType : i32 {
   /// A variant of this enum was passed to [token_type_glpyh_string] that
@@ -226,7 +205,6 @@ bool tokentype_is_keyword(TokenType self);
 
 CONST_FUNC
 bool tokentype_is_glyph(TokenType self);
-
 
 
 /// Lex/Parse Token. If token is a integer or boolean literal, it will

@@ -7,16 +7,16 @@
 #include "core_types.h"
 #include "mimalloc.h"
 
-static void* global_vtable_alloc(void*, isize size) {
-  return mi_malloc(size);  
+static void* global_vtable_alloc(void*, isize size, isize align) {
+  return mi_malloc_aligned(size, align);  
 }
 
-static void* global_vtable_realloc(void*, void* ptr, isize new_size) {
-  return mi_realloc(ptr, new_size);
+static void* global_vtable_realloc(void*, void* ptr, isize new_size, isize align) {
+  return mi_realloc_aligned(ptr, new_size, align);
 }
 
-static void* global_vtable_zalloc(void*, isize size) {
-  return mi_zalloc(size);  
+static void* global_vtable_zalloc(void*, isize size, isize align) {
+  return mi_zalloc_aligned(size, align);  
 }
 
 static void* global_vtable_expand(void*, void* ptr, isize new_size) {
@@ -38,19 +38,19 @@ Allocator global_allocator(void) { return (Allocator){.ctx = nullptr, .vtable = 
 
 HeapAllocator heap_allocator_new(void) { return (HeapAllocator){.heap = mi_heap_new()}; }
 
-static void* heap_vtable_alloc(void* ctx, isize size) {
+static void* heap_vtable_alloc(void* ctx, isize size, isize align) {
   mi_heap_t* self = pcast(mi_heap_t, ctx);
-  return mi_heap_malloc(self, size);
+  return mi_heap_malloc_aligned(self, size, align);
 }
 
-static void* heap_vtable_realloc(void* ctx, void* ptr, isize new_size) {
+static void* heap_vtable_realloc(void* ctx, void* ptr, isize new_size, isize align) {
   mi_heap_t* self = pcast(mi_heap_t, ctx);
-  return mi_heap_realloc(self, ptr, new_size);
+  return mi_heap_realloc_aligned(self, ptr, new_size, align);
 }
 
-static void* heap_vtable_zalloc(void* ctx, isize size) {
+static void* heap_vtable_zalloc(void* ctx, isize size, isize align) {
   mi_heap_t* self = pcast(mi_heap_t, ctx);
-  return mi_heap_zalloc(self, size);
+  return mi_heap_zalloc_aligned(self, size, align);
 }
 
 static void* heap_vtable_expand(void*, void* ptr, isize new_size) {
@@ -62,13 +62,13 @@ static void heap_vtable_free(void*, void* ptr) {
 }
 
 /// forwards call  to [mi_heap_malloc]
-void* heap_allocator_malloc(HeapAllocator self, isize size) { return heap_vtable_alloc(self.heap, size); }
+void* heap_allocator_malloc(HeapAllocator self, isize size, isize align) { return heap_vtable_alloc(self.heap, size, align); }
 /// forwards call to [mi_heap_realloc]
-void* heap_allocator_realloc(HeapAllocator self, void* ptr, isize new_size) {
-  return heap_vtable_realloc(self.heap, ptr, new_size);
+void* heap_allocator_realloc(HeapAllocator self, void* ptr, isize new_size, isize align) {
+  return heap_vtable_realloc(self.heap, ptr, new_size, align);
 }
 /// forwards call to [mi_heap_zalloc]
-void* heap_allocator_zalloc(HeapAllocator self, isize size) { return heap_vtable_zalloc(self.heap, size); }
+void* heap_allocator_zalloc(HeapAllocator self, isize size, isize align) { return heap_vtable_zalloc(self.heap, size, align); }
 /// forwards call to [mi_expand]
 void* heap_allocator_expand(HeapAllocator, void* ptr, isize new_size) { return mi_expand(ptr, new_size); }
 /// forwwards call to [mi_free]
@@ -113,14 +113,14 @@ Arena arena_new(isize capacity) {
 }
 
 Arena arena_new_in(isize capacity, Allocator alloc) {
-  u8* mem = allocator_allocate(alloc, capacity);
+  u8* mem = allocator_allocate(alloc, capacity, alignof(u8[capacity]));
   if (is_null(mem)) {
     return (Arena){};
   }
   return (Arena){.mem = mem, .used = 0, .capacity = capacity};
 }
 
-static void* arena_vtable_alloc(void* ctx, isize size) {
+static void* arena_vtable_alloc(void* ctx, isize size, isize) {
   Arena* self = pcast(Arena, ctx);
 
   const isize next_used = (self->used + size);
@@ -133,10 +133,10 @@ static void* arena_vtable_alloc(void* ctx, isize size) {
   return ptr;
 }
 
-static void* arena_vtable_zalloc(void* ctx, isize size) {
+static void* arena_vtable_zalloc(void* ctx, isize size, isize align) {
   Arena* self = pcast(Arena, ctx);
 
-  void* ptr = arena_allocate(self, size);
+  void* ptr = arena_allocate(self, size, align);
   if (is_null(ptr)) {
     return nullptr;
   }
@@ -144,14 +144,14 @@ static void* arena_vtable_zalloc(void* ctx, isize size) {
   return ptr;
 }
 
-void* arena_allocate(Arena* self, isize size) { return arena_vtable_alloc(pcast(void, self), size); }
+void* arena_allocate(Arena* self, isize size, isize align) { return arena_vtable_alloc(pcast(void, self), size, align); }
 
-void* arena_zallocate(Arena* self, isize size) { return arena_vtable_zalloc(pcast(Arena, self), size); }
+void* arena_zallocate(Arena* self, isize size, isize align) { return arena_vtable_zalloc(pcast(Arena, self), size, align); }
 
-void* vtable_alloc_no_impl(void*, isize) { return NO_IMPL_METHOD_RESULT; }
+void* vtable_alloc_no_impl(void*, isize, isize) { return NO_IMPL_METHOD_RESULT; }
 
-void* vtable_realloc_no_impl(void*, void*, isize) { return NO_IMPL_METHOD_RESULT; }
-void* vtable_zalloc_no_impl(void*, isize) { return NO_IMPL_METHOD_RESULT; }
+void* vtable_realloc_no_impl(void*, void*, isize, isize) { return NO_IMPL_METHOD_RESULT; }
+void* vtable_zalloc_no_impl(void*, isize, isize) { return NO_IMPL_METHOD_RESULT; }
 void* vtable_expand_no_impl(void*, void*, isize) { return NO_IMPL_METHOD_RESULT; }
 void vtable_free_no_impl(void*, void*) {}
 

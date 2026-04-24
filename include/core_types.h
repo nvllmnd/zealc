@@ -1,7 +1,9 @@
 #pragma once
 
 #include <math.h>
+#include <stddef.h>
 
+#include "attributes.h"
 #include "intdefs.h"
 #include "mimalloc.h"
 
@@ -44,11 +46,6 @@
   /* for a version of this macro that just does general casts between any \
    * given type and an expresion; see: [cast]*/                           \
   (cast(__typeof__(T*), (_ptr)))
-
-
-
-
- 
 
 #define min(a, b)                      \
   (cast(__typeof__((a)), _Generic((a), \
@@ -105,23 +102,69 @@
 //  #define ref &
 //
 
-
 #define UNUSED(v) ((void)v)
 
+#define make(T, ...) /* Conveinence macro for creating new structs on stack. its possible to pass a value instead of a \
+                        type as the first parameter to this macro. the type of the resulting struct will be the type   \
+                        of value given. Note that this does not do anything with the value, and does not create a copy \
+                        of the value passed in (if any)*/                                                              \
+  ((__typeof__(T)){__VA_ARGS__})
 
-#define make(T, ...) /* Conveinence macro for creating new structs. Does not allocate on heap. */ ((T){ __VA_ARGS__ })
+#define make_zeroed(T) /* Same as [make] macro, but initializes given type T's fields to all be set to 0. */ (make(T))
 
+PARAMS_NONNULL(1)
+static inline void* move(void** from) {
+  void* tmp = *from;
+  *from = nullptr;
+  return tmp;
+}
+#define move(from) (move((void**)&from))
 
-// #define alloc_in(T, allocator) ((__typeof__(T))(allocator_allocate(allocator, sizeof(__typeof__(T), alignof(__typeof__(T))))))
-// #define alloc(T) (alloc_in(T, global_allocator()))
+PARAMS_NONNULL(1, 2)
+static inline void* move_into(void** from, void** to) {
+  *to = move(*from);
+  return *to;
+}
+#define move_into(from, to) (move_into((void**)&from, (void**)&to))
 
+PARAMS_NONNULL(1, 2)
+static inline void* move_exchange(void** obj, void** new_value) {
+  void* tmp = *obj;
+  *obj = *new_value;
+  return tmp;
+}
+#define move_exchange(from, to) (move_exchange((void**)&from, (void**)&to))
 
-// #define alloc(T, allocator, ...) ({\
-//     u8* mem = allocator_allocate((allocator), sizeof(__typeof__(T), alignof(__typeof__(T))); \
-//     if (UNLIKELY(is_null(mem))) { abort(0); }\
-//     __typeof__(T*) self = pcast(__typeof__(T), mem); \
-//     *self = (__typeof__(T){ __VA_ARGS__ }); \
-//     self; \
-//     \
-// })
+/// Offsetof polyfill
+#ifndef offsetof
+#define offsetof(T, m) ((isize) & ((T*)0)->m)
+#endif
 
+#define IS_POWER_OF_2(n) ((n & (n - 1)) == 0)
+
+CONST_FUNC
+static inline bool is_power_of_2(isize n) { return IS_POWER_OF_2(n); }
+
+static inline isize ptr_align_offset(const void* ptr, isize align) WHERE(IS_POWER_OF_2(align)) {
+  if LIKELY (IS_POWER_OF_2(align)) {
+    const u64ptr mask = align - 1;
+    return cast(isize, cast(u64ptr, ptr) & mask);
+  }
+  return 0;
+}
+
+static inline void* align_ptr(const void* ptr, isize align) WHERE(IS_POWER_OF_2(align)) {
+  const isize offset = ptr_align_offset(ptr,  align);
+  const isize adjust = (offset == 0 ? 0 : align - offset);
+  const u64ptr p = cast(u64ptr, ptr);
+  return pcast(void, p + adjust);
+
+}
+
+// Thanks mimalloc! :D
+// .. and align within the allocation
+// const uintptr_t align_mask = alignment - 1;  // for any x, `(x & align_mask) == (x % alignment)`
+// const uintptr_t poffset = ((uintptr_t)p + offset) & align_mask;
+// const uintptr_t adjust  = (poffset == 0 ? 0 : alignment - poffset);
+// mi_assert_internal(adjust < alignment);
+// void* aligned_p = (void*)((uintptr_t)p + adjust);

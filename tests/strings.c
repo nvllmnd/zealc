@@ -3,6 +3,7 @@
 
 #include "ast/symbol.h"
 #include "ast/token.h"
+#include "core_types.h"
 #include "intdefs.h"
 #include "memory/cstr.h"
 #include "unity.h"
@@ -10,6 +11,65 @@
 void setUp(void) {}
 
 void tearDown(void) {}
+
+void move_memory_helpers(void) {
+  typedef struct Resource {
+    const char* buf;
+  } Resource;
+
+  {
+    static const char* INPUT = "test";
+    static const char* OLD = "old value";
+
+    Resource a = make(Resource, INPUT);
+    Resource b = make_zeroed(Resource);
+
+    b.buf = move_exchange(a.buf, OLD);
+
+    TEST_ASSERT_EQUAL_STRING(b.buf, INPUT);
+    TEST_ASSERT_EQUAL_STRING(a.buf, OLD);
+  }
+  {
+    static const char* INPUT = "input value";
+
+    Resource a = make(Resource, INPUT);
+    Resource b = make_zeroed(Resource);
+
+    b.buf = move(a.buf);
+
+    TEST_ASSERT_EQUAL_STRING(b.buf, INPUT);
+    TEST_ASSERT_NULL(a.buf);
+  }
+
+  {
+    static const char* INPUT = "input value";
+
+    Resource a = make(Resource, INPUT);
+    Resource b = make_zeroed(Resource);
+
+    static constexpr const char* none = nullptr;
+    b.buf = move_exchange(a.buf, none);
+
+    TEST_ASSERT_EQUAL_STRING(b.buf, INPUT);
+    TEST_ASSERT_NULL(a.buf);
+  }
+
+  {
+    static const char* INPUT = "input value";
+
+    Resource a = make(Resource, INPUT);
+    Resource b = make_zeroed(Resource);
+
+    move_into(a.buf, b.buf);
+
+    TEST_ASSERT_EQUAL_STRING(b.buf, INPUT);
+    TEST_ASSERT_NULL(a.buf);
+  }
+
+
+
+  
+}
 
 void keyword_lookup_table(void) {
   static const sslice KEYWORDS[Token__KeywordCount] = {
@@ -31,16 +91,7 @@ void keyword_lookup_table(void) {
     const sslice sl = KEYWORDS[i];
     const Keyword* kw = kw_lookup_str(sl.begin, sl.len);
 
-    {
-      static constexpr char FMT[] = "Input: %s :: %d";
-      const i32 len = snprintf(nullptr, 0, FMT, sl.begin, sl.len) + 1;
-      char pf[len] = {};
-      snprintf(pf, len, FMT, sl.begin, sl.len);
-
-      TEST_ASSERT_NOT_NULL_MESSAGE(kw, pf);
-    }
-
-
+    TEST_ASSERT_NOT_NULL(kw);
 
     // check slice variant too just in case :D
     const Keyword* kw2 = kw_lookup(sl);
@@ -74,6 +125,7 @@ i32 main(void) {
 
   RUN_TEST(string_compare);
   RUN_TEST(keyword_lookup_table);
+  RUN_TEST(move_memory_helpers);
 
   return UNITY_END();
 }

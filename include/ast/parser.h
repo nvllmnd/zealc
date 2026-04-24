@@ -1,13 +1,16 @@
 #pragma once
 
-#include "lex.h"
 
 
-struct Parser {
-  LexState lex;
-  struct Expr* ast;
-};
-typedef struct Parser Parser;
+
+#include "intdefs.h"
+
+struct Expr* parse_source_str(const char* str, isize len);
+
+
+
+
+
 
 
 

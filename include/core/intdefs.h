@@ -20,6 +20,7 @@ typedef ptrdiff_t isize;
 typedef usize index_t;
 /// AKA: pointer offset :: same as `std::ptrdiff_t` or `isize`
 typedef isize poffset_t;
+typedef uintptr_t u64ptr;
 
 typedef float f32;
 typedef double f64;
