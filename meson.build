@@ -20,10 +20,9 @@ mimalloc_proj = subproject('mimalloc')
 mimalloc_dep = mimalloc_proj.get_variable('mi_dep')
 
 
+
 hedley_dep = dependency('hedley')
 
-
-unity_dep = dependency('unity')
 
 
 dependencies = [
@@ -33,7 +32,6 @@ dependencies = [
 
 inc = include_directories(
   'include',
-  'include/extern',
   'include/core',
 )
 

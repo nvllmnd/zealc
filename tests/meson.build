@@ -1,3 +1,6 @@
+unity_dep = dependency('unity')
+
+
 dependencies += unity_dep
 
 strings_test = executable(

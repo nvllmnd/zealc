@@ -9,10 +9,7 @@
 
 #include "hedley.h"
 
-
-
 #if defined(__clang__) && __clang__
-
 
 // HEDLEY_PRAGMA(clang diagnostic push);
 
@@ -35,7 +32,7 @@
 #define CLANG_NON_NULL_BEGIN
 #define CLANG_NON_NULL_END
 
-#endif // if defined(__clang__) && __clang__
+#endif  // if defined(__clang__) && __clang__
 
 // #pragma clang assume_nonnull begin
 // #if defined(__clang__) && __clang__
@@ -71,7 +68,7 @@
   first_to_check                                                                                                 \
       Index of the first user-supplied parameter to check.                                                       \
   */                                                                                                             \
-HEDLEY_PRINTF_FORMAT
+  HEDLEY_PRINTF_FORMAT
 
 #define BITFLAG_CAST                                                                \
   /*example: const enum Foo foo = HEDLEY_FLAGS_CAST(enum Foo, FOO_BAR | FOO_BAZ);*/ \
@@ -109,7 +106,6 @@ HEDLEY_PRINTF_FORMAT
    * is non-NULL in the remainder of the function, which allows you to pass it to a function as a non-NULL           \
    * parameter.*/                                                                                                    \
   HEDLEY_NO_RETURN
-
 
 /// Tell the compiler that the pointer will not escape the function call. For
 /// more information, see the documentation for clang's noescape attribute.
@@ -217,11 +213,73 @@ HEDLEY_PRINTF_FORMAT
    * take a pointer to struct as thier first parameter  */                                                         \
   METHOD
 
-#define LIKELY HEDLEY_LIKELY
-
-#define UNLIKELY HEDLEY_UNLIKELY
+// #define LIKELY(expr)                      (__builtin_expect                 (!!(expr),    1                  ))
+// #define UNLIKELY(expr)                    (__builtin_expect                 (!!(expr),    0                  ))
 
 #define RETURNS_ERROR [[nodiscard("Ignoring returned error value can cause unexpected results!")]]
 
-#define RETURNS_RESOURCE [[nodiscard("Returned value is either a pointer or contains a pointer! Ignoring value would cause memory leak! Caller is expected to call appropriate free function on returned value")]]
+#define RETURNS_RESOURCE                                                                                             \
+  [[nodiscard(                                                                                                       \
+      "Returned value is either a pointer or contains a pointer! Ignoring value would cause memory leak! Caller is " \
+      "expected to call appropriate free function on returned value")]]
 
+// NOTE: I had to rip out the hedley.h defines for LIKELY and UNLIKELY (and i just brought along PREDICT and
+// UNPREDICTABLE cus why not lol) so that i can put () around the compiler extension, so i can write my if statements
+// like "if UNLIKELY(ptr == nullptr) {}" instead of "if (UNLIKELY(ptr == false)) {}"
+#if defined(PREDICT)
+#undef PREDICT
+#endif
+#if defined(LIKELY)
+#undef LIKELY
+#endif
+#if defined(UNLIKELY)
+#undef UNLIKELY
+#endif
+#if defined(UNPREDICTABLE)
+#undef UNPREDICTABLE
+#endif
+#if HEDLEY_HAS_BUILTIN(__builtin_unpredictable)
+#define UNPREDICTABLE(expr) (__builtin_unpredictable((expr)))
+#endif
+#if (HEDLEY_HAS_BUILTIN(__builtin_expect_with_probability) && !defined(HEDLEY_PGI_VERSION)) || \
+    HEDLEY_GCC_VERSION_CHECK(9, 0, 0) || HEDLEY_MCST_LCC_VERSION_CHECK(1, 25, 10)
+#define PREDICT(expr, value, probability) (__builtin_expect_with_probability((expr), (value), (probability)))
+#define PREDICT_TRUE(expr, probability) (__builtin_expect_with_probability(!!(expr), 1, (probability)))
+#define PREDICT_FALSE(expr, probability) (__builtin_expect_with_probability(!!(expr), 0, (probability)))
+#define LIKELY(expr) (__builtin_expect(!!(expr), 1))
+#define UNLIKELY(expr) (__builtin_expect(!!(expr), 0))
+#elif (HEDLEY_HAS_BUILTIN(__builtin_expect) && !defined(HEDLEY_INTEL_CL_VERSION)) ||                        \
+    HEDLEY_GCC_VERSION_CHECK(3, 0, 0) || HEDLEY_INTEL_VERSION_CHECK(13, 0, 0) ||                            \
+    (HEDLEY_SUNPRO_VERSION_CHECK(5, 15, 0) && defined(__cplusplus)) || HEDLEY_ARM_VERSION_CHECK(4, 1, 0) || \
+    HEDLEY_IBM_VERSION_CHECK(10, 1, 0) || HEDLEY_TI_VERSION_CHECK(15, 12, 0) ||                             \
+    HEDLEY_TI_ARMCL_VERSION_CHECK(4, 7, 0) || HEDLEY_TI_CL430_VERSION_CHECK(3, 1, 0) ||                     \
+    HEDLEY_TI_CL2000_VERSION_CHECK(6, 1, 0) || HEDLEY_TI_CL6X_VERSION_CHECK(6, 1, 0) ||                     \
+    HEDLEY_TI_CL7X_VERSION_CHECK(1, 2, 0) || HEDLEY_TI_CLPRU_VERSION_CHECK(2, 1, 0) ||                      \
+    HEDLEY_TINYC_VERSION_CHECK(0, 9, 27) || HEDLEY_CRAY_VERSION_CHECK(8, 1, 0) ||                           \
+    HEDLEY_MCST_LCC_VERSION_CHECK(1, 25, 10)
+#define PREDICT(expr, expected, probability) \
+  (((probability) >= 0.9) ? __builtin_expect((expr), (expected)) : (HEDLEY_STATIC_CAST(void, expected), (expr)))
+#define PREDICT_TRUE(expr, probability)                                                                         \
+  (__extension__({                                                                                              \
+    double hedley_probability_ = (probability);                                                                 \
+    ((hedley_probability_ >= 0.9) ? __builtin_expect(!!(expr), 1)                                               \
+                                  : ((hedley_probability_ <= 0.1) ? __builtin_expect(!!(expr), 0) : !!(expr))); \
+  }))
+#define PREDICT_FALSE(expr, probability)                                                                        \
+  (__extension__({                                                                                              \
+    double hedley_probability_ = (probability);                                                                 \
+    ((hedley_probability_ >= 0.9) ? __builtin_expect(!!(expr), 0)                                               \
+                                  : ((hedley_probability_ <= 0.1) ? __builtin_expect(!!(expr), 1) : !!(expr))); \
+  }))
+#define LIKELY(expr) (__builtin_expect(!!(expr), 1))
+#define UNLIKELY(expr) (__builtin_expect(!!(expr), 0))
+#else
+#define PREDICT(expr, expected, probability) (HEDLEY_STATIC_CAST(void, expected), (expr))
+#define PREDICT_TRUE(expr, probability) (!!(expr))
+#define PREDICT_FALSE(expr, probability) (!!(expr))
+#define LIKELY(expr) (!!(expr))
+#define UNLIKELY(expr) (!!(expr))
+#endif
+#if !defined(UNPREDICTABLE)
+#define UNPREDICTABLE(expr) PREDICT(expr, 1, 0.5)
+#endif
