@@ -60,6 +60,16 @@ METHOD
 PURE_FUNC
 sslice kw_sslice(const Keyword* self);
 
+
+
+PURE_FUNC
+u32 fnv_hash32(const char* string, isize len);
+
+PURE_FUNC
+u64 fnv_hash64(const char* string, isize len);
+
+
+
 /// A static global string pool, storing unique strings used
 /// in our frontend and backend. Strings live for the entirety
 /// of interpreter / compiler runtime
