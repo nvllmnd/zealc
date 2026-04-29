@@ -9,6 +9,7 @@
 #include "log.h"
 #include "memory/alloc.h"
 #include "mimalloc-override.h"
+#include "mimalloc.h"
 
 struct Block {
   struct Block* prev;
@@ -18,67 +19,10 @@ struct Block {
 };
 typedef struct Block Block;
 
-struct ParentAllocator {
-  union {
-    mi_heap_t* heap;
-    Allocator alloc;
-  };
-
-  /// Is this parent allocator of type [Allocator]
-  bool is_trait;
-};
-typedef struct ParentAllocator ParentAllocator;
-
-CONST_FUNC
-static inline ParentAllocator palloc_heap_new(void) {
-  mi_heap_t* heap = mi_heap_new();
-  assert(is_not_null(heap));
-
-  return make(ParentAllocator, .heap = heap, .is_trait = false);
-}
-
-PURE_FUNC
-static inline ParentAllocator palloc_allocator_new(Allocator inner) {
-  return make(ParentAllocator, .alloc = inner, .is_trait = true);
-}
-
-// static inline void* palloc_allocate(ParentAllocator self, isize size, isize align) {
-//   if (self.is_trait) {
-//     return allocator_allocate(self.alloc, size, align);
-//   } else {
-//     return mi_heap_malloc_aligned(self.heap, size, align);
-//   }
-// }
-
-static inline void* palloc_zallocate(ParentAllocator self, isize size, isize align) {
-  if (self.is_trait) {
-    return allocator_zallocate(self.alloc, size, align);
-  } else {
-    return mi_heap_zalloc_aligned(self.heap, size, align);
-  }
-}
-
-
-[[maybe_unused]]
-static inline void palloc_free(ParentAllocator self, void* ptr) {
-  if (self.is_trait) {
-    allocator_free(self.alloc, ptr);
-  } else {
-    mi_free(ptr);
-  }
-}
-
-[[maybe_unused]]
-static inline void palloc_delete(ParentAllocator self) {
-  if (!self.is_trait) {
-    mi_heap_delete(self.heap);
-  }
-}
-
-static inline Block* palloc_block_new(ParentAllocator self, Block* current, isize size) {
+static inline Block* palloc_block_new(mi_heap_t* self, Block* current, isize size) {
   const isize capacity = sizeof(Block) + size;
 
-  Block* block = palloc_zallocate(self, capacity, alignof(Block));
+  Block* block = mi_heap_zalloc_aligned(self, capacity, alignof(Block));
 
   if (UNLIKELY(is_null(block))) {
     ELOG_DBG(
@@ -103,12 +47,9 @@ struct BlockSlice {
 typedef struct BlockSlice BlockSlice;
 
 struct ArenaHeap {
-  ParentAllocator parent;
+  mi_heap_t* parent;
 
-  struct ArenaHeapStats {
-    i64 total_used;
-    i64 total_allocated;
-  } stats;
+  ArenaHeapStats stats;
 
   struct Block* root;
 
@@ -120,9 +61,6 @@ struct ArenaHeap {
   i64 mem_cap;
   u8 mem[];
 };
-
-typedef struct ArenaHeapStats ArenaHeapStats;
-
 
 METHOD
 static inline void* ah_try_inner_allocate(ArenaHeap* self, isize size, isize align) {
@@ -201,7 +139,7 @@ static inline void* ah_allocate(ArenaHeap* self, isize size, isize align) {
   }
 
   if (is_null(self->root) || !ah_alloc_in_block_ok(self, size, align)) {
-    const isize block_size = max(self->root->capacity * 2, size);
+    const isize block_size = size * 2;
     self->root = palloc_block_new(self->parent, self->root, block_size);
   }
 
@@ -223,10 +161,11 @@ static const AllocVTable HEAP_VTABLE =
                      .expand_in_place = NO_IMPL_EXPAND, .free = NO_IMPL_FREE, .reallocate = NO_IMPL_REALLOCATE);
 
 ArenaHeap* arena_heap_new(isize capacity) {
-  ParentAllocator parent = palloc_heap_new();
+  mi_heap_t* parent = mi_heap_new();
+  assert(parent != mi_heap_main());
 
   const isize size = sizeof(ArenaHeap) + capacity;
-  ArenaHeap* self = palloc_zallocate(parent, size, alignof(ArenaHeap));
+  ArenaHeap* self = mi_heap_zalloc_aligned(parent, size, alignof(ArenaHeap));
 
   if UNLIKELY (is_null(self)) {
     assert(false);
@@ -237,23 +176,6 @@ ArenaHeap* arena_heap_new(isize capacity) {
                .root = nullptr, .mem_used = 0, .mem_cap = capacity);
 
   return self;
-}
-
-ArenaHeap* arena_heap_new_in(isize capacity, Allocator parent) {
-  ParentAllocator palloc = palloc_allocator_new(parent);
-  const isize size = sizeof(ArenaHeap) + capacity;
-  ArenaHeap* self = palloc_zallocate(palloc,  size,  alignof(ArenaHeap));
-
-  if UNLIKELY (is_null(self)) {
-    assert(false);
-    return nullptr;
-  }
-
-  const auto stats = make(ArenaHeapStats, .total_used = 0, .total_allocated = capacity);
-  *self = make(ArenaHeap, .parent = palloc, .stats = stats, .root = nullptr, .mem_used = 0, .mem_cap = capacity);
-
-  return self;
-  
 }
 
 void* arena_heap_alloc(ArenaHeap* self, isize size, isize align) { return ah_allocate(self, size, align); }
@@ -267,16 +189,32 @@ void* arena_heap_zalloc(ArenaHeap* self, isize size, isize align) {
   return mem;
 }
 
-// void arena_heap_clear(ArenaHeap* self) {
-  
-// }
+void arena_heap_clear(ArenaHeap* self) {
+  Block* current = self->root;
 
-// void arean_heap_destroy(ArenaHeap* self) {
-  
-// }
+  while (current && current->prev) {
+    Block* tmp = current;
+    current = current->prev;
+    mi_free(tmp);
+  }
+  self->root = nullptr;
+}
+
+void arena_heap_destroy(ArenaHeap* self) {
+  mi_heap_t* heap = self->parent;
+  mi_heap_destroy(heap);
+}
 
 const AllocVTable* arena_heap_alloc_vtable(void) { return &HEAP_VTABLE; }
 
-Allocator arena_heap_allocator(ArenaHeap* self) {
-  return make(Allocator, .ctx = self, .vtable = &HEAP_VTABLE);
+Allocator arena_heap_allocator(ArenaHeap* self) { return make(Allocator, .ctx = self, .vtable = &HEAP_VTABLE); }
+
+
+
+
+ArenaHeapStats arena_heap_stats(ArenaHeap* self) {
+  return self->stats;
 }
+
+
+

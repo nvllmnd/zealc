@@ -1,17 +1,21 @@
 #pragma once
 
-
 #include "attributes.h"
 #include "intdefs.h"
 #include "memory/alloc.h"
 typedef struct ArenaHeap ArenaHeap;
 
+struct ArenaHeapStats {
+  i64 total_used;
+  i64 total_allocated;
+};
+
+typedef struct ArenaHeapStats ArenaHeapStats;
+
+
 
 RETURNS_RESOURCE
 ArenaHeap* arena_heap_new(isize capacity);
-
-RETURNS_RESOURCE
-ArenaHeap* arena_heap_new_in(isize capacity, Allocator parent);
 
 METHOD
 void* arena_heap_alloc(ArenaHeap* self, isize size, isize align);
@@ -24,16 +28,22 @@ void arena_heap_clear(ArenaHeap* self);
 
 /// Starts from the last Block (or the first block allocated as root, not including the memory block in ArenaHeap root)
 /// and frees/releases the memory used by that block back to the system. Tries to release up to @param (nblocks).
-/// if @param (nblocks) <= 0, then all blocks used by this [ArenaHeap] are freed, and the memory in [ArenaHeap] root is zeroed
+/// if @param (nblocks) <= 0, then all blocks used by this [ArenaHeap] are freed, and the memory in [ArenaHeap] root is
+/// zeroed
 ///
-/// If you want to keep all blocks currently allocated, but would like to reset/clear all memory and reset all blocks used counters,
-/// see [arena_heap_clear]
-METHOD
-void arena_heap_release(ArenaHeap* self, isize nblocks);
+/// If you want to keep all blocks currently allocated, but would like to reset/clear all memory and reset all blocks
+/// used counters, see [arena_heap_clear]
+// METHOD
+// void arena_heap_release(ArenaHeap* self, isize nblocks);
 
+/// Destroys given ArenaHeap entirely, freeing all memory used by it
+/// As such, the pointer is invalid after this funciton returns and should be discarded
 METHOD
-void arean_heap_destroy(ArenaHeap* self);
+void arena_heap_destroy(ArenaHeap* self);
 
+PURE_FUNC
+METHOD
+ArenaHeapStats arena_heap_stats(ArenaHeap* self);
 
 CONST_FUNC
 RETURNS_NON_NULL
