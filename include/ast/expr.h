@@ -4,19 +4,22 @@
 
 #include "memory/cstr.h"
 
+
+
 typedef enum ExprType {
-  ExprType__Unit,
-  ExprType__Bool,
-  ExprType__Int,
-  ExprType__Float,
-  ExprType__String,
-  ExprType__Ident,
-  ExprType__Pair,
-  ExprType__Triple,
-  ExprType__List,
-  ExprType__Assignment,
-  ExprType__Call,
-  ExprType__Operator,
+  Expr__Unit,
+  Expr__Bool,
+  Expr__Int,
+  Expr__Float,
+  Expr__String,
+  Expr__Ident,
+  Expr__Rune,
+  Expr__Pair,
+  Expr__Triple,
+  Expr__List,
+  Expr__Assignment,
+  Expr__Call,
+  Expr__Operator,
 } ExprType;
 
 typedef enum ExprStmtType {
@@ -39,29 +42,44 @@ typedef enum OperatorType {
   OperatorType__Concat,
 } OperatorType;
 
+typedef i64 StringId;
+typedef i64 RuneId;
+typedef i32 ExprSlot;
+
 struct Expr {
   union {
     bool b;
     i64 i;
     f64 f;
-    cstr s;
-    cstr rune;
+    StringId s;
+    RuneId rune; 
+
     struct ExprList {
-      struct Expr* start;
-      isize len;
+      ExprSlot start; 
+      i32 len;
     } list;
+    // cstr s;
+    // cstr rune;
+    // struct ExprList {
+    //   struct Expr* start;
+    //   isize len;
+    // } list;
     struct ExprAssignment {
-      struct Expr* lhs;
-      struct Expr* rhs;
+      ExprSlot lhs;
+      ExprSlot rhs;
+      // struct Expr* lhs;
+      // struct Expr* rhs;
     } assign;
-    struct ExprCall {
-      struct Expr* callee;
-      struct Expr* args;
-      isize args_len;
-    } call;
+    // struct ExprCall {
+    //   struct Expr* callee;
+    //   struct Expr* args;
+    //   isize args_len;
+    // } call;
     struct ExprOperator {
-      struct Expr* lhs;
-      struct Expr* rhs;
+      ExprSlot lhs;
+      ExprSlot rhs;
+      // struct Expr* lhs;
+      // struct Expr* rhs;
       OperatorType optype;
     } op;
   };
@@ -73,6 +91,7 @@ typedef struct ExprList ExprList;
 typedef struct ExprAssignment ExprAssignment;
 typedef struct ExprCall ExprCall;
 typedef struct ExprOperator ExprOperator;
+
 
 // struct WhenFormList {
 //   struct WhenForm* start;
@@ -108,7 +127,7 @@ typedef struct ExprOperator ExprOperator;
 // typedef struct ExprStmtList ExprStmtList;
 
 // struct FuncDecl {
-//   cstr  
+//   cstr
 // };
 // typedef struct FuncDecl FuncDecl;
 

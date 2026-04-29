@@ -68,6 +68,7 @@ static inline void* ah_try_inner_allocate(ArenaHeap* self, isize size, isize ali
   if (end < self->mem_cap) {
     u8* start = &self->mem[self->mem_used];
     u8* aligned_start = align_ptr(start, align);
+
     const u8* alloc_end = aligned_start + size;
 
     const u8* mem_end = &self->mem[self->mem_cap - 1];
@@ -95,6 +96,7 @@ static inline bool ah_alloc_in_block_ok(ArenaHeap* self, isize size, isize align
 
     const u8* alloc_start = &root->mem[root->used];
     const u8* aligned_start = align_ptr(alloc_start, align);
+
     const u8* alloc_end = aligned_start + size;
 
     const u8* mem_end = &root->mem[root->capacity - 1];
@@ -109,8 +111,7 @@ static inline bool ah_alloc_in_block_ok(ArenaHeap* self, isize size, isize align
 }
 
 /// This function checks if self->root is not null, however it does
-/// not verify that the requested allocation will fit in this block, so be sure
-/// to check that this block can fit an allocation of @param (size) in bytes
+/// not verify that the requested allocation will fit in this block, so be sure / to check that this block can fit an allocation of @param (size) in bytes
 METHOD
 static inline void* ah_block_allocate(ArenaHeap* self, isize size, isize align) {
   if UNLIKELY (is_null(self->root)) {
@@ -209,12 +210,4 @@ const AllocVTable* arena_heap_alloc_vtable(void) { return &HEAP_VTABLE; }
 
 Allocator arena_heap_allocator(ArenaHeap* self) { return make(Allocator, .ctx = self, .vtable = &HEAP_VTABLE); }
 
-
-
-
-ArenaHeapStats arena_heap_stats(ArenaHeap* self) {
-  return self->stats;
-}
-
-
-
+ArenaHeapStats arena_heap_stats(ArenaHeap* self) { return self->stats; }

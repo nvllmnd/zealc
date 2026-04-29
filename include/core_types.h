@@ -2,6 +2,7 @@
 
 #include <math.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "attributes.h"
 #include "intdefs.h"
@@ -153,13 +154,36 @@ static inline isize ptr_align_offset(const void* ptr, isize align) WHERE(IS_POWE
   return 0;
 }
 
-static inline void* align_ptr(const void* ptr, isize align) WHERE(IS_POWER_OF_2(align)) {
-  const isize offset = ptr_align_offset(ptr,  align);
-  const isize adjust = (offset == 0 ? 0 : align - offset);
-  const u64ptr p = cast(u64ptr, ptr);
-  return pcast(void, p + adjust);
+// static inline void* align_ptr(const void* ptr, isize align) WHERE(IS_POWER_OF_2(align)) {
+//   const isize offset = ptr_align_offset(ptr, align);
+//   const isize adjust = (offset == 0 ? 0 : align - offset);
+//   const u64ptr p = cast(u64ptr, ptr);
+//   return pcast(void, p + adjust);
+// }
 
+
+static inline bool ptr_is_aligned(const void* ptr, isize align) WHERE(IS_POWER_OF_2(align)) {
+  const auto addr = cast(uintptr_t, ptr);
+  const uintptr_t mask = align - 1;
+  return (addr & mask) == 0;
 }
+
+static inline const void* align_ptr(const void* ptr, isize align) WHERE(IS_POWER_OF_2(align)) {
+  if (ptr_is_aligned(ptr,  align)) {
+    return ptr;
+  }
+
+  const uintptr_t addr = cast(uintptr_t, ptr);
+  const uintptr_t mask = align - 1;
+
+  const uintptr_t aligned = (addr + mask) & (~mask);
+
+  return cast(void*, aligned);
+}
+
+#define align_ptr(p, align) ((__typeof__(p))align_ptr(p, align))
+
+#define alias(T) typedef struct T T
 
 // Thanks mimalloc! :D
 // .. and align within the allocation

@@ -10,6 +10,7 @@
 #include "ast/token.h"
 #include "attributes.h"
 #include "core_types.h"
+#include "log.h"
 #include "memory/cstr.h"
 
 // static constexpr const char INVALID_CHAR = cast(char, -125);
@@ -913,18 +914,19 @@ static LexError lexer_string(LexState* self, Token* tok) {
   }
 
   if (LIKELY(c == '"' && i < DEPTH_MAX)) {
+    lexer_adv(self);
+
     const i32 end = self->cursor.i;
 
-    lexer_adv(self);
     tok->lexeme = lexer_slice(self, start, end);
     tok->type = Token__String;
+
     tok->loc = make(SourceLocation, start, self->cursor.row, start);
     return LexError__Ok;
   } else {
     return LexError__UnmatchedDoubleQuotString;
   }
 
-  // for (i32 i = 0; c != '"' && i < DEPTH_MAX; i++, c = lexer_adv_peekc(self));
 }
 
 bool tokentype_is_keyword(TokenType self) { return self > Token__KeywordsStart && self < Token__KeywordsEnd; }

@@ -1,21 +1,19 @@
 #pragma once
 
-
-
 #include "ast/token.h"
 #include "attributes.h"
 #include "intdefs.h"
 #include "memory/cstr.h"
 
 /// Keyword lookup struct, points to
-/// a keyword in a gnu gperf generated perfect hash table. 
+/// a keyword in a gnu gperf generated perfect hash table.
 struct Keyword {
- /// Id offset into stringpool
- /// To get string for this Keyword add this field to [stringpool]
- i32 id;
- /// TokenType of Keyword. Will always fall in the range
- /// of [Token__KeywordsStart] ... [Token__KeywordsEnd]
- TokenType type;
+  /// Id offset into stringpool
+  /// To get string for this Keyword add this field to [stringpool]
+  i32 id;
+  /// TokenType of Keyword. Will always fall in the range
+  /// of [Token__KeywordsStart] ... [Token__KeywordsEnd]
+  TokenType type;
 };
 
 typedef struct Keyword Keyword;
@@ -37,16 +35,12 @@ const Keyword* kw_lookup_str(register const char* str, register usize len);
 PURE_FUNC
 const Keyword* kw_lookup(sslice str);
 
-
-
-
 /// Returns true of @param (str) is exactly equal
 /// to a reserved zeal language keyword. otherwise false.
 /// Note that @param (len) must exactly match keyword length as well
 PURE_FUNC
 PARAMS_NONNULL(1)
-bool is_keyword(const char* str,  usize len);
-
+bool is_keyword(const char* str, usize len);
 
 /// Returns a null-terminated string to the keyword associated
 /// with this [Keyword], as that struct contains a id offset into
@@ -66,6 +60,34 @@ METHOD
 PURE_FUNC
 sslice kw_sslice(const Keyword* self);
 
+/// A static global string pool, storing unique strings used
+/// in our frontend and backend. Strings live for the entirety
+/// of interpreter / compiler runtime
+typedef struct StringPool StringPool;
 
+// struct ZString {
 
+// };
+// alias(ZString);
 
+typedef enum ZStringType {
+  ZString__Rune,
+  ZString__Ident,
+  ZString__Literal,
+  ZString__Keyword,
+} ZStringType;
+
+/// An internned String. Could be a Rune, Identifier, or String literal
+/// Used for Storing strings used for AST Interpretation and compiler codegen.
+typedef struct ZString ZString;
+struct ZString {
+
+  u64 hash;
+  ZStringType type;
+  i32 len;
+
+   char string[];
+};
+
+PURE_FUNC
+StringPool* stringpool(void);

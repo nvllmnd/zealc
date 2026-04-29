@@ -61,6 +61,7 @@ memory_lib = static_library(
     'src/memory/cstr.c',
     'src/memory/alloc.c',
     'src/memory/arena.c',
+    'src/memory/gpa.c',
   ),
   include_directories: inc,
   dependencies: dependencies,
@@ -101,6 +102,27 @@ ast_dep = declare_dependency(
 )
 
 dependencies += ast_dep
+
+compiler_lib = static_library(
+  'zealc',
+  files(
+    'src/compiler/compiler.c',
+    'src/compiler/eval.c',
+  ),
+  include_directories: inc,
+  dependencies: dependencies,
+  install: true,
+  pic: true,
+  c_pch: 'pch/zeal_pch.h',
+)
+
+compiler_dep = declare_dependency(
+  include_directories: inc,
+  link_with: compiler_lib,
+)
+
+dependencies += compiler_dep
+
 
 exe = executable(
   'zealc',

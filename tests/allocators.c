@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "constants.h"
+#include "core_types.h"
 #include "intdefs.h"
 #include "log.h"
 #include "memory/alloc.h"
@@ -16,6 +18,31 @@ void setUp(void) {
 }
 
 void tearDown(void) {}
+
+
+struct Stuff {
+  char buf[255];
+
+  struct Point {
+    f32 x;
+    f32 y;
+  } points[20];
+
+  i64 counter;
+};
+alias(Stuff);
+
+void arena_heap_alignment_nofragment(void) {
+
+ ArenaHeap* ah = arena_heap_new(KILOBYTES(4));  
+
+ 
+ Stuff* s = arena_heap_zalloc(ah, sizeof(Stuff), alignof(Stuff));
+ TEST_ASSERT_NOT_NULL(s);
+
+ *s = make(Stuff, .buf = {}, .points = {}, .counter = 5);
+
+}
 
 void arena_heap_can_grow_and_destroy(void) {
   ArenaHeap* ah = arena_heap_new(255);
@@ -63,6 +90,7 @@ i32 main(void) {
 
   RUN_TEST(global_allocator_trait);
   RUN_TEST(arena_heap_can_grow_and_destroy);
+  RUN_TEST(arena_heap_alignment_nofragment);
 
   return UNITY_END();
 }
