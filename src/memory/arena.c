@@ -38,14 +38,6 @@ static inline Block* palloc_block_new(mi_heap_t* self, Block* current, isize siz
   return block;
 }
 
-struct BlockSlice {
-  /// Top of the memory region to allocate from
-  u8* top;
-  /// remaining space of this block in bytes
-  i64 remaining;
-};
-typedef struct BlockSlice BlockSlice;
-
 struct ArenaHeap {
   mi_heap_t* parent;
 
@@ -111,7 +103,8 @@ static inline bool ah_alloc_in_block_ok(ArenaHeap* self, isize size, isize align
 }
 
 /// This function checks if self->root is not null, however it does
-/// not verify that the requested allocation will fit in this block, so be sure / to check that this block can fit an allocation of @param (size) in bytes
+/// not verify that the requested allocation will fit in this block, so be sure / to check that this block can fit an
+/// allocation of @param (size) in bytes
 METHOD
 static inline void* ah_block_allocate(ArenaHeap* self, isize size, isize align) {
   if UNLIKELY (is_null(self->root)) {
@@ -157,12 +150,14 @@ static void* arena_heap_vtzalloc_impl(void* ctx, isize size, isize align) {
   return arena_heap_zalloc(self, size, align);
 }
 
-static const AllocVTable HEAP_VTABLE =
-    alloc_vtable_new(.allocate = arena_heap_vtalloc_impl, .zallocate = arena_heap_vtzalloc_impl,
-                     .expand_in_place = NO_IMPL_EXPAND, .free = NO_IMPL_FREE, .reallocate = NO_IMPL_REALLOCATE);
+static inline ArenaHeap* ah_new_ex(VirtMem vm, isize capacity) {
+  mi_heap_t* parent = nullptr;
+  if (is_not_null(vm)) {
+    parent = vmem_heap_new(vm);
+  } else {
+    parent = mi_heap_new();
+  }
 
-ArenaHeap* arena_heap_new(isize capacity) {
-  mi_heap_t* parent = mi_heap_new();
   assert(parent != mi_heap_main());
 
   const isize size = sizeof(ArenaHeap) + capacity;
@@ -178,6 +173,14 @@ ArenaHeap* arena_heap_new(isize capacity) {
 
   return self;
 }
+
+static const AllocVTable HEAP_VTABLE =
+    alloc_vtable_new(.allocate = arena_heap_vtalloc_impl, .zallocate = arena_heap_vtzalloc_impl,
+                     .expand_in_place = NO_IMPL_EXPAND, .free = NO_IMPL_FREE, .reallocate = NO_IMPL_REALLOCATE);
+
+ArenaHeap* arena_heap_new(isize capacity) { return ah_new_ex(nullptr, capacity); }
+
+ArenaHeap* arena_heap_in_vmem(VirtMem vm, isize capacity) { return ah_new_ex(vm, capacity); }
 
 void* arena_heap_alloc(ArenaHeap* self, isize size, isize align) { return ah_allocate(self, size, align); }
 
@@ -211,3 +214,9 @@ const AllocVTable* arena_heap_alloc_vtable(void) { return &HEAP_VTABLE; }
 Allocator arena_heap_allocator(ArenaHeap* self) { return make(Allocator, .ctx = self, .vtable = &HEAP_VTABLE); }
 
 ArenaHeapStats arena_heap_stats(ArenaHeap* self) { return self->stats; }
+
+OsArena os_arena_new(i32 size_mb, isize init_commit) {
+  VirtMem vm = vmem_new(size_mb);
+  ArenaHeap* ah = ah_new_ex(vm, init_commit);
+  return make(OsArena, .base = ah, .vm = vm);
+}

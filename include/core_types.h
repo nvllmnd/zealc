@@ -48,7 +48,7 @@
    * given type and an expresion; see: [cast]*/                           \
   (cast(__typeof__(T*), (_ptr)))
 
-#define min(a, b)                      \
+#define fmin(a, b)                     \
   (cast(__typeof__((a)), _Generic((a), \
             i8: fmin,                  \
             u8: fmin,                  \
@@ -62,7 +62,7 @@
             f64: fmin,                 \
             f128: fminl)(a, b)))
 
-#define max(a, b)                      \
+#define fmax(a, b)                     \
   (cast(__typeof__((a)), _Generic((a), \
             i8: fmax,                  \
             u8: fmax,                  \
@@ -75,6 +75,34 @@
             f32: fmax,                 \
             f64: fmax,                 \
             f128: fmaxl)(a, b)))
+
+#define cmin(a, b)                          \
+  ({                                        \
+    constexpr const __typeof__(a) _a = (a); \
+    constexpr const __typeof__(b) _b = (b); \
+    _a < _b ? _a : _b;                      \
+  })
+
+#define cmax(a, b)                          \
+  ({                                        \
+    constexpr const __typeof__(a) _a = (a); \
+    constexpr const __typeof__(b) _b = (b); \
+    _a > _b ? _a : _b;                      \
+  })
+
+#define min(a, b)                 \
+  ({                              \
+    const __typeof__(a) _a = (a); \
+    const __typeof__(b) _b = (b); \
+    _a < _b ? _a : _b;            \
+  })
+
+#define max(a, b)                 \
+  ({                              \
+    const __typeof__(a) _a = (a); \
+    const __typeof__(b) _b = (b); \
+    _a > _b ? _a : _b;            \
+  })
 
 #define is_null(p)                                    \
   /* checks if given pointer (p) is equal to null. */ \
@@ -90,7 +118,7 @@
    */                                                                                                                  \
   (((isize)(p)) > 0)
 
-#define clamp(x, _min, _max)                                           \
+#define fclamp(x, _min, _max)                                          \
   /* clamps a value values (x) to be between (min) and (max) */        \
   /* i.e.: 'clamp(-1, 0, 5) == 0;', or 'clamp(650, 0, 100) == 100;' */ \
   (max((_min), min((x), (_max))))
@@ -161,7 +189,6 @@ static inline isize ptr_align_offset(const void* ptr, isize align) WHERE(IS_POWE
 //   return pcast(void, p + adjust);
 // }
 
-
 static inline bool ptr_is_aligned(const void* ptr, isize align) WHERE(IS_POWER_OF_2(align)) {
   const auto addr = cast(uintptr_t, ptr);
   const uintptr_t mask = align - 1;
@@ -169,7 +196,7 @@ static inline bool ptr_is_aligned(const void* ptr, isize align) WHERE(IS_POWER_O
 }
 
 static inline const void* align_ptr(const void* ptr, isize align) WHERE(IS_POWER_OF_2(align)) {
-  if (ptr_is_aligned(ptr,  align)) {
+  if (ptr_is_aligned(ptr, align)) {
     return ptr;
   }
 

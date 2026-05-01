@@ -67,6 +67,8 @@ void arena_heap_can_grow_and_destroy(void) {
   arena_heap_destroy(ah);
 }
 
+
+
 /// we can put a global allocator in an [Allocator]
 /// struct and everything works just fine
 void global_allocator_trait(void) {

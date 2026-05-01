@@ -6,23 +6,51 @@
 #include "core_types.h"
 
 
-/// A flat list of [Expr]s (or [ExprStmt]s once those are implemented).
-/// behaves like a vec of Expr, although you cannot index a pointer to this type
-/// and expect to get an [Expr], see: [ast_index] for that
-typedef struct Ast Ast;
-
-// struct Ast {
-//   Expr* start;
-//   i32 len;
-//   i32 cap;
-// };
-// alias(Ast);
+struct Ast {
+  Expr* start;
+  i32 len;
+  i32 cap;
+};
+alias(Ast);
 
 
-Ast* ast_new(isize cap);
+struct AstEntry {
+  ExprSlot id; 
+  Expr* e;
+};
+alias(AstEntry);
+
+Ast ast_new(isize cap);
 
 
 METHOD
-void ast_push(Ast* self, Expr expr);
+AstEntry ast_push(Ast* self, Expr expr);
 
+
+METHOD
+AstEntry ast_exprlist_push(Ast* self, Expr* exprs, i32 len);
+
+
+METHOD
+AstEntry ast_bool_push(Ast* self, bool val);
+
+METHOD
+AstEntry ast_int_push(Ast* self, i64 n);
+
+METHOD
+AstEntry ast_float_push(Ast* self, f64 n);
+
+
+METHOD
+AstEntry ast_string_push(Ast* self, sslice string);
+
+METHOD
+AstEntry ast_ident_push(Ast* self, sslice ident);
+
+METHOD
+AstEntry ast_assign_push(Ast* self, ExprSlot lhs, ExprSlot rhs);
+
+
+METHOD
+AstEntry ast_operator_push(Ast* self, ExprSlot lhs, ExprSlot rhs, OperatorType type);
 

@@ -1,9 +1,12 @@
 #include "memory/alloc.h"
 
+#include <asm-generic/errno.h>
 #include <assert.h>
 #include <stdatomic.h>
 #include <string.h>
+#include <error.h>
 
+#include "constants.h"
 #include "core_types.h"
 #include "mimalloc.h"
 
@@ -184,4 +187,32 @@ void arena_clear(Arena* self) {
 void arena_clear_zeroed(Arena* self) {
   arena_clear(self);
   memset(self->mem, 0, self->capacity);
+}
+
+static constexpr const i32 VMEM_MAX_SIZE_MB = 0x10000000;
+static constexpr const i32 VMEM_MIN_SIZE_MB = 4;
+
+VirtMem vmem_new(i32 size_mb) {
+  VirtMem id = nullptr;
+  if (size_mb > VMEM_MAX_SIZE_MB) {
+    size_mb = VMEM_MAX_SIZE_MB;
+  } else if (size_mb < VMEM_MIN_SIZE_MB) {
+    size_mb = VMEM_MIN_SIZE_MB;
+  }
+  const i32 err = mi_reserve_os_memory_ex(MEGABYTES(size_mb), false, true, true, &id);
+  if (err == 0 && is_not_null(id)) {
+    return id;
+  }
+
+  return nullptr;
+}
+
+struct mi_heap_s* vmem_heap_new(VirtMem self) {
+  return mi_heap_new_in_arena(self);
+}
+
+isize vmem_size(VirtMem self) {
+  usize size = 0;
+  mi_arena_area(self, &size);
+  return size;
 }

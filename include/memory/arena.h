@@ -1,6 +1,7 @@
 #pragma once
 
 #include "attributes.h"
+#include "core_types.h"
 #include "intdefs.h"
 #include "memory/alloc.h"
 typedef struct ArenaHeap ArenaHeap;
@@ -16,6 +17,9 @@ typedef struct ArenaHeapStats ArenaHeapStats;
 
 RETURNS_RESOURCE
 ArenaHeap* arena_heap_new(isize capacity);
+
+RETURNS_RESOURCE
+ArenaHeap* arena_heap_in_vmem(VirtMem vm, isize capacity);
 
 METHOD
 void* arena_heap_alloc(ArenaHeap* self, isize size, isize align);
@@ -51,3 +55,20 @@ const AllocVTable* arena_heap_alloc_vtable(void);
 
 METHOD
 Allocator arena_heap_allocator(ArenaHeap* self);
+
+
+struct OsArena {
+  struct ArenaHeap* base;
+  VirtMem vm;
+};
+alias(OsArena);
+
+RETURNS_RESOURCE
+OsArena os_arena_new(i32 size_mb, isize init_commit);
+
+#define os_arena_alloc(self, size, align) (arena_heap_alloc((self).base), size, align)
+#define os_arena_zalloc(self, size, align) (arena_heap_zalloc((self).base, size, align))
+#define os_arena_clear(self) (arena_heap_clear((self).base))
+#define os_arena_destroy(self) (arena_heap_destroy((self).base))
+#define os_arena_stats(self) (arena_heap_stats((self).base))
+#define os_arena_allocator(self) (arena_heap_allocator((self).base))

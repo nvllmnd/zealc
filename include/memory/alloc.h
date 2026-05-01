@@ -2,6 +2,7 @@
 
 #include "attributes.h"
 #include "intdefs.h"
+#include "mimalloc.h"
 
 typedef enum AllocationResult : isize {
   /// The Allocator VTable Method is not implemented in the implementing/super Allocator!
@@ -287,3 +288,17 @@ void arena_clear(Arena* self);
 
 METHOD
 void arena_clear_zeroed(Arena* self);
+
+
+typedef void* mi_arena_id_t;
+typedef mi_arena_id_t VirtMem;
+
+
+VirtMem vmem_new(i32 size_mb);
+
+struct mi_heap_s* vmem_heap_new(VirtMem self);
+
+isize vmem_size(VirtMem self);
+
+
+
