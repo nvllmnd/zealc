@@ -5,15 +5,57 @@
 #include "intdefs.h"
 #include "memory/cstr.h"
 
+
+typedef enum KeywordType {
+
+  Keyword__True = 0,
+  Keyword__False,
+  Keyword__Let,
+  Keyword__If,
+  Keyword__Else,
+  Keyword__Mut,
+  Keyword__When,
+  Keyword__Fn,
+  Keyword__Struct,
+  Keyword__Trait,
+  Keyword__Impl,
+  Keyword__And,
+  Keyword__Or,
+  Keyword__Return,
+  Keyword__Self,
+  Keyword__Const,
+  Keyword__Loop,
+  Keyword__For,
+  Keyword__While,
+  Keyword__Break,
+  Keyword__Match,
+  Keyword__Continue,
+  Keyword__Pub,
+  Keyword__Ref,
+  Keyword__Error,
+  Keyword__Enum,
+  Keyword__Type,
+  Keyword__Await,
+  Keyword__Comptime,
+  Keyword__Static,
+  Keyword__Mod,
+  Keyword__Macro,
+  Keyword__Derive,
+  Keyword__Dyn,
+  Keyword__Default,
+  Keyword__Sizeof,
+
+  Keyword__Count = Token__KeywordCount,
+
+} KeywordType;
+
 /// Keyword lookup struct, points to
 /// a keyword in a gnu gperf generated perfect hash table.
 struct Keyword {
   /// Id offset into stringpool
   /// To get string for this Keyword add this field to [stringpool]
   i32 id;
-  /// TokenType of Keyword. Will always fall in the range
-  /// of [Token__KeywordsStart] ... [Token__KeywordsEnd]
-  TokenType type;
+  KeywordType type;
 };
 
 typedef struct Keyword Keyword;
@@ -60,15 +102,11 @@ METHOD
 PURE_FUNC
 sslice kw_sslice(const Keyword* self);
 
-
-
 PURE_FUNC
 u32 fnv_hash32(const char* string, isize len);
 
 PURE_FUNC
 u64 fnv_hash64(const char* string, isize len);
-
-
 
 /// A static global string pool, storing unique strings used
 /// in our frontend and backend. Strings live for the entirety
@@ -80,24 +118,106 @@ typedef struct StringPool StringPool;
 // };
 // alias(ZString);
 
-typedef enum ZStringType {
-  ZString__Rune,
-  ZString__Ident,
-  ZString__Literal,
-  ZString__Keyword,
-} ZStringType;
+typedef enum SPoolEntryType {
+  SPoolEntry__Rune,
+  SPoolEntry__Ident,
+  SPoolEntry__Literal,
+  SPoolENtry__Keyword,
+} SPoolEntryType;
 
-/// An internned String. Could be a Rune, Identifier, or String literal
-/// Used for Storing strings used for AST Interpretation and compiler codegen.
-typedef struct ZString ZString;
-struct ZString {
-
-  u64 hash;
-  ZStringType type;
-  i32 len;
-
-   char string[];
+static const char* KEYWORD_LITERAL[] = {
+    [Keyword__True] = "true",
+    [Keyword__False] = "false",
+    [Keyword__If] = "if",
+    [Keyword__Else] = "else",
+    [Keyword__Mut] = "mut",
+    [Keyword__When] = "when",
+    [Keyword__Fn] = "fn",
+    [Keyword__Struct] = "struct",
+    [Keyword__Trait] = "trait",
+    [Keyword__Impl] = "impl",
+    [Keyword__And] = "and",
+    [Keyword__Or] = "or",
+    [Keyword__Return] = "return",
+    [Keyword__Self] = "self",
+    [Keyword__Const] = "const",
+    [Keyword__Loop] = "loop",
+    [Keyword__For] = "for",
+    [Keyword__While] = "while",
+    [Keyword__Break] = "break",
+    [Keyword__Match] = "match",
+    [Keyword__Continue] = "continue",
+    [Keyword__Pub] = "pub",
+    [Keyword__Ref] = "ref",
+    [Keyword__Error] = "error",
+    [Keyword__Enum] = "enum",
+    [Keyword__Type] = "type",
+    [Keyword__Await] = "await",
+    [Keyword__Comptime] = "comptime",
+    [Keyword__Static] = "static",
+    [Keyword__Mod] = "mod",
+    [Keyword__Macro] = "macro",
+    [Keyword__Derive] = "derive",
+    [Keyword__Dyn] = "dyn",
+    [Keyword__Default] = "default",
+    [Keyword__Sizeof] = "sizeof",
+};
+static constexpr const TokenType KEYWORD_TOKENTYPE[] = {
+    [Keyword__True] = Token__True,
+    [Keyword__False] = Token__False,
+    [Keyword__If] = Token__If,
+    [Keyword__Else] = Token__Else,
+    [Keyword__Mut] = Token__Mut,
+    [Keyword__When] = Token__When,
+    [Keyword__Fn] = Token__Fn,
+    [Keyword__Struct] = Token__Struct,
+    [Keyword__Trait] = Token__Trait,
+    [Keyword__Impl] = Token__Impl,
+    [Keyword__And] = Token__And,
+    [Keyword__Or] = Token__Or,
+    [Keyword__Return] = Token__Return,
+    [Keyword__Self] = Token__Self,
+    [Keyword__Const] = Token__Const,
+    [Keyword__Loop] = Token__Loop,
+    [Keyword__For] = Token__For,
+    [Keyword__While] = Token__While,
+    [Keyword__Break] = Token__Break,
+    [Keyword__Match] = Token__Match,
+    [Keyword__Continue] = Token__Continue,
+    [Keyword__Pub] = Token__Pub,
+    [Keyword__Ref] = Token__Ref,
+    [Keyword__Error] = Token__Error,
+    [Keyword__Enum] = Token__Enum,
+    [Keyword__Type] = Token__Type,
+    [Keyword__Await] = Token__Await,
+    [Keyword__Comptime] = Token__Comptime,
+    [Keyword__Static] = Token__Static,
+    [Keyword__Mod] = Token__Mod,
+    [Keyword__Macro] = Token__Macro,
+    [Keyword__Derive] = Token__Derive,
+    [Keyword__Dyn] = Token__Dyn,
+    [Keyword__Default] = Token__Default,
+    [Keyword__Sizeof] = Token__Sizeof,
 };
 
+static inline KeywordType tokentype_keyword(TokenType tt) { return tt - (Token__KeywordsStart + 1); }
+
+// CONST_FUNC
+// const StringPool* stringpool(void);
+
+typedef i32 SPoolSlot;
+
+SPoolSlot stringpool_insert(const char* s, isize len);
+
 PURE_FUNC
-StringPool* stringpool(void);
+sslice stringpool_lookup(SPoolSlot slot);
+
+PURE_FUNC
+bool stringpool_exists(const char* s, isize len);
+
+
+void stringpool_init(void);
+
+void stringpool_free(void);
+
+

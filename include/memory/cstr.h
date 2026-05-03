@@ -58,6 +58,14 @@ static inline isize str_len(const char* string, isize max_len) {
 PURE_FUNC
 static inline isize stringlen(const char* string) { return str_len(string, STRLEN_UPPER_BOUND); }
 
+/// shorthand for `strncmp(left, right, n) == 0`
+/// string params must not overlap and must not be null
+PURE_FUNC
+PARAMS_NONNULL(1,2)
+static inline bool stringeq(const char* __restrict__ left, const char* __restrict__ right, isize n) {
+    return strncmp(left, right, n) == 0;
+}
+
 /// Type alias to make it more clear that
 /// this is a pointer to a string that has an [i32] prefix length
 /// which you can get by subtracting sizeof([i32]) from this [char]*

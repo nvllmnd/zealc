@@ -159,6 +159,9 @@ static inline void* allocator_zallocate(Allocator self, isize size, isize align)
   return self.vtable->zallocate(self.ctx, size, align);
 }
 
+#define allocator_alloc_array(self, T, count) (allocator_allocate((self), sizeof(T) * (count), alignof(T[count])))
+#define allocator_zalloc_array(self, T, count) (allocator_zallocate((self), sizeof(T) * (count), alignof(T[count])))
+
 [[nodiscard("Must not discard pointer returned from allocator! possible memory leak!")]]
 static inline void* allocator_expand(Allocator self, void* ptr, isize new_size) {
   return self.vtable->expand_in_place(self.ctx, ptr, new_size);

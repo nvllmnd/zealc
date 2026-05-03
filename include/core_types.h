@@ -8,6 +8,7 @@
 #include "intdefs.h"
 #include "mimalloc.h"
 
+
 #define array(T, N)                                                    \
   /* conveinence for declaring static array of type (T) of size (N) */ \
   __typeof__(T[N])
@@ -140,6 +141,8 @@
   ((__typeof__(T)){__VA_ARGS__})
 
 #define make_zeroed(T) /* Same as [make] macro, but initializes given type T's fields to all be set to 0. */ (make(T))
+
+
 
 PARAMS_NONNULL(1)
 static inline void* move(void** from) {

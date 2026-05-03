@@ -8,6 +8,7 @@
 #include "core_types.h"
 #include "mimalloc.h"
 
+
 static void init_small_cstr(cstr* self, const char* string, usize len) {
   assert(len <= SMALL_BUF_SIZE);
   self->buf.len = cast(u8, len);
@@ -134,14 +135,13 @@ bool cstr_shrink_to(cstr* self, usize smaller_size) {
 }
 
 cstr i64_truncate_into(i64 n) {
-
   cstr self = {};
 
   const i32 len = snprintf(self.buf.mem, SMALL_BUF_SIZE, "%13li", n);
   assert(len <= SMALL_BUF_SIZE && len > 0);
 
   self.buf.len = len;
-  return self;  
+  return self;
 }
 
 cstr i32_to_cstr(i32 n) {
