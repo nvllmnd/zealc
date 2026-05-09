@@ -1,0 +1,5 @@
+[wrap-git]
+url = https://github.com/nvllmnd/libnv.git
+push-url = https://github.com/nvllmnd/libnv.git
+revision = HEAD
+depth = 1

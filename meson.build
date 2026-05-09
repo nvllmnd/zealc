@@ -16,68 +16,27 @@ add_global_arguments('-Wno-static-in-inline', language: 'c')
 add_global_arguments('-Wno-gnu-statement-expression', language: 'c')
 
 
-mimalloc_proj = subproject('mimalloc')
-mimalloc_dep = mimalloc_proj.get_variable('mi_dep')
+# mimalloc_proj = subproject('mimalloc')
+# mimalloc_dep = mimalloc_proj.get_variable('mi_dep')
 
 
 
 hedley_dep = dependency('hedley')
 
+nv_dep = dependency('libnv')
+
 
 
 dependencies = [
   hedley_dep,
-  mimalloc_dep,
+  nv_dep,
+  # mimalloc_dep,
 ]
 
 inc = include_directories(
   'include',
   'include/core',
 )
-
-core_lib = static_library(
-  'zcore',
-  files(
-    'src/core/log.c'
-  ),
-  include_directories: inc,
-  dependencies: dependencies,
-  install: true,
-  pic: true,
-  c_pch: 'pch/zeal_pch.h',
-)
-
-core_dep = declare_dependency(
-  include_directories: inc,
-  link_with: core_lib,
-)
-
-dependencies += core_dep
-
-
-memory_lib = static_library(
-  'zmemory',
-  files(
-    'src/memory/cstr.c',
-    'src/memory/alloc.c',
-    'src/memory/arena.c',
-    'src/memory/gpa.c',
-  ),
-  include_directories: inc,
-  dependencies: dependencies,
-  install: true,
-  pic: true,
-  c_pch: 'pch/zeal_pch.h',
-)
-
-memory_dep = declare_dependency(
-  include_directories: inc,
-  link_with: memory_lib
-)
-
-
-dependencies += memory_dep
-
 
 ast_lib = static_library(
   'zast',

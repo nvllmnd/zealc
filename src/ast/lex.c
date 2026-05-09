@@ -421,7 +421,7 @@ LexError lexer_next(LexState* self, Token* next_token) {
     // check if this identifier is a Zeal Language Reserved Keyword
     const Keyword* kw = kw_lookup_str(lexeme.begin, lexeme.len);
     if (is_not_null(kw)) {
-      next_token->type = kw->type;
+      next_token->type = KEYWORD_TOKENTYPE[kw->type];
     }
     // if not then we know this is still a valid tokenized identifier
     return LexError__Ok;

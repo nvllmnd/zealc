@@ -2,9 +2,6 @@
 
 #include "constants.h"
 #include "core_types.h"
-#include "memory/arena.h"
-#include "memory/gpa.h"
-#include "mimalloc.h"
 
 static constexpr const isize PS_LOCAL_SIZE = 30;
 /// Similar to [cstr], but bigger sized (as this will live on heap) and non-owning
@@ -127,34 +124,34 @@ u64 fnv_hash64(const char* string, isize len) {
 
 
 
-SPoolSlot stringpool_insert(const char* s, isize len) {
-  const u64 hash  = fnv_hash64(s,  len);
-  const isize index = hash %
-}
+// SPoolSlot stringpool_insert(const char* s, isize len) {
+//   const u64 hash  = fnv_hash64(s,  len);
+//   // const isize index = hash %
+// }
 
-sslice stringpool_lookup(SPoolSlot slot) {
+// sslice stringpool_lookup(SPoolSlot slot) {
   
-}
+// }
 
-bool stringpool_exists(const char* s, isize len) {
+// bool stringpool_exists(const char* s, isize len) {
   
-}
+// }
 
 
-void stringpool_init(void) {
-  static constexpr const isize INIT_SIZE = MEGABYTES(1) / sizeof(StringPoolEntry);
-  static constexpr const isize PINIT_SIZE = INIT_SIZE * 2;
-  SP.entries.es = arena_heap_zalloc(gpa_main(), INIT_SIZE, 1);
-  SP.entries.cap = INIT_SIZE;
-  SP.entries.len = 0;
-  SP.buf.s = arena_heap_zalloc(gpa_main(), PINIT_SIZE , 1);
-  SP.buf.cap = PINIT_SIZE;
-  SP.buf.used = 0;
-}
+// void stringpool_init(void) {
+//   static constexpr const isize INIT_SIZE = MEGABYTES(1) / sizeof(StringPoolEntry);
+//   static constexpr const isize PINIT_SIZE = INIT_SIZE * 2;
+//   SP.entries.es = arena_heap_zalloc(gpa_main(), INIT_SIZE, 1);
+//   SP.entries.cap = INIT_SIZE;
+//   SP.entries.len = 0;
+//   SP.buf.s = arena_heap_zalloc(gpa_main(), PINIT_SIZE , 1);
+//   SP.buf.cap = PINIT_SIZE;
+//   SP.buf.used = 0;
+// }
 
 void stringpool_free(void) {
-  mi_free(SP.entries.es);
-  mi_free(SP.buf.s);
+  // mi_free(SP.entries.es);
+  // mi_free(SP.buf.s);
 
   memset(&SP, 0, sizeof(SP));
 

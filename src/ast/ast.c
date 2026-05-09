@@ -7,14 +7,18 @@
 #include "log.h"
 #include "memory/alloc.h"
 #include "memory/arena.h"
+#include "memory/block_alloc.h"
 
 METHOD
 static void ast_resize(Ast* self, isize new_cap);
 
-Ast ast_new(isize cap) { return ast_new_in(cap, global_allocator()); }
+Ast ast_new(isize cap) {
+  BlockAllocator* ba = ba_owned_new(2);
+  return ast_new_in(cap, ba_allocator(ba));
+}
 
 Ast ast_new_in(isize cap, Allocator alloc) {
-  Expr* start = allocator_alloc_array(alloc, Expr, cap);
+  Expr* start = allocator_allocate(alloc, make(MemLayout, .size = sizeof(Expr) * cap, .align = alignof(Expr)));
   if (start) {
     return make(Ast, .start = start, .len = 0, .cap = cap, .alloc = alloc);
   }
@@ -99,7 +103,9 @@ void ast_resize(Ast* self, isize new_len) {
   }
 
   // need to realloc
-  self->start = allocator_reallocate(self->alloc, self->start, sizeof(Expr) * new_len, alignof(Expr[new_len]));
+  const MemLayout old_layout = make(MemLayout, .size = sizeof(Expr) * self->len, .align = alignof(Expr));
+  const MemLayout new_layout = make(MemLayout, .size = sizeof(Expr) * new_len, .align = alignof(Expr));
+  self->start = allocator_reallocate(self->alloc, self->start, old_layout, new_layout);
   if (is_null(self->start)) {
     log_fatal("Failed to reallocate Expr Array through Allocator interface struct!");
     return;
