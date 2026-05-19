@@ -62,6 +62,27 @@ ast_dep = declare_dependency(
 
 dependencies += ast_dep
 
+
+core_lib = static_library(
+  'zcore',
+  files(
+    'src/core/runes.c',
+  ),
+  include_directories: inc,
+  dependencies: dependencies,
+  install: true,
+  pic: true,
+  c_pch: 'pch/zeal_pch.h',
+)
+
+core_dep = declare_dependency(
+  include_directories: inc,
+  link_with: core_lib,
+)
+
+dependencies += core_dep
+
+
 compiler_lib = static_library(
   'zealc',
   files(
