@@ -1,9 +1,9 @@
 #include "ast/lex.h"
 #include "ast/symbol.h"
 #include "ast/token.h"
-#include "core_types.h"
-#include "log.h"
-#include "memory/cstr.h"
+#include "nv/core_types.h"
+#include "nv/core/log.h"
+#include "nv/memory/cstr.h"
 #include "unity.h"
 
 void setUp(void) {}

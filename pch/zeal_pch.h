@@ -9,12 +9,12 @@
 #include <assert.h>
 #include <errno.h>
 
-#include "core_types.h"
+#include "nv/core_types.h"
 
 #include <stddef.h>
 #include <stdint.h>
 
-#include "attributes.h"
+#include "nv/core/attributes.h"
 
-#include "memory/cstr.h"
-#include "core/log.h"
+#include "nv/memory/cstr.h"
+#include "nv/core/log.h"

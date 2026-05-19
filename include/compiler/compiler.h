@@ -3,7 +3,7 @@
 
 
 #include "ast/lex.h"
-#include "core_types.h"
+#include "nv/core_types.h"
 
 struct CompilerState {
   LexState lex;

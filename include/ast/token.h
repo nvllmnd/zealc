@@ -1,9 +1,9 @@
 #pragma once
 
-#include "intdefs.h"
+#include "nv/core/intdefs.h"
 
-#include "attributes.h"
-#include "memory/cstr.h"
+#include "nv/core/attributes.h"
+#include "nv/core/sslice.h"
 
 struct Cursor {
   /// index into whatever buffer this cursor is iterating over

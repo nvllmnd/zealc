@@ -4,9 +4,8 @@
 #include <unistd.h>
 
 #include "ast/lex.h"
-#include "constants.h"
-#include "log.h"
-#include "memory/cstr.h"
+#include "nv/core/constants.h"
+#include "nv/core/log.h"
 
 static constexpr const isize MAX_ARGV = 24;
 
@@ -61,7 +60,7 @@ int main(i32 argc, char** argv) {
       const char* a1 = args.argv[1];
       switch (stringlen(a0)) {
         case 1: {
-          if (stringeq(a0, "e", 1)) {
+          if (stringeq(a0, "e")) {
             return eval_string(a1);
           } else {
             eprintln("Unknown argument: %s", a0);
@@ -69,7 +68,7 @@ int main(i32 argc, char** argv) {
           }
         } break;
         case 2: {
-          if (stringeq(a0, "-e", 2)) {
+          if (stringeq(a0, "-e")) {
             return eval_string(a1);
           } else {
             eprintln("Unknown argument: %s", a0);
@@ -77,7 +76,7 @@ int main(i32 argc, char** argv) {
           }
         } break;
         case 4: {
-          if (stringeq(a0, "eval", 4)) {
+          if (stringeq(a0, "eval")) {
             return eval_string(a1);
           }
 
@@ -137,12 +136,12 @@ i32 repl(void) {
       return 0;
     }
 
-    if (stringeq(buf, "up", 2)) {
+    if (stringeq(buf, "up" )) {
       print("%s", hist[--hist_size]); 
       continue;
     }
 
-    if (stringeq(buf, ".exit", 5) || stringeq(buf, ".quit", 5)) {
+    if (stringeq(buf, ".exit") || stringeq(buf, ".quit" )) {
       println("Exiting zeal repl!");
       return 0;
     }

@@ -1,8 +1,7 @@
 #pragma once
 
 #include "ast/token.h"
-#include "attributes.h"
-#include "memory/cstr.h"
+#include "nv/core/attributes.h"
 
 typedef enum LexError {
   /// No Error! OK!

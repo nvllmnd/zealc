@@ -3,8 +3,8 @@
 
 
 #include "ast/expr.h"
-#include "core_types.h"
-#include "memory/alloc.h"
+#include "nv/core_types.h"
+#include "nv/memory/alloc.h"
 
 
 struct Ast {

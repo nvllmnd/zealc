@@ -2,12 +2,12 @@
 #include <stdlib.h>
 
 #include "ast/expr.h"
-#include "constants.h"
-#include "core_types.h"
-#include "log.h"
-#include "memory/alloc.h"
-#include "memory/arena.h"
-#include "memory/block_alloc.h"
+#include "nv/core/constants.h"
+#include "nv/core_types.h"
+#include "nv/core/log.h"
+#include "nv/memory/alloc.h"
+#include "nv/memory/arena.h"
+#include "nv/memory/block_alloc.h"
 
 METHOD
 static void ast_resize(Ast* self, isize new_cap);

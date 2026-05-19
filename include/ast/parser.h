@@ -3,7 +3,7 @@
 
 #include "ast/lex.h"
 #include "ast/token.h"
-#include "intdefs.h"
+#include "nv/core/intdefs.h"
 
 struct ParseState {
   LexState lex;
