@@ -62,33 +62,33 @@ ExprSlot ast_float_push(Ast* self, f64 n) {
   return ast_push(self, e);
 }
 
-METHOD
-ExprSlot ast_string_push(Ast* self, StringId string) {
-  const Expr e = make(Expr, .s = string, .type = Expr__String);
-  return ast_push(self, e);
-}
+// METHOD
+// ExprSlot ast_string_push(Ast* self, StringId string) {
+//   const Expr e = make(Expr, .rune = string, .type = Expr__StringLiteral);
+//   return ast_push(self, e);
+// }
 
-METHOD
-ExprSlot ast_ident_push(Ast* self, StringId ident) {
-  const Expr e = make(Expr, .s = ident, .type = Expr__Ident);
+// METHOD
+// ExprSlot ast_ident_push(Ast* self, StringId ident) {
+//   const Expr e = make(Expr, .s = ident, .type = Expr__Ident);
 
-  return ast_push(self, e);
-}
+//   return ast_push(self, e);
+// }
 
-METHOD
-ExprSlot ast_assign_push(Ast* self, ExprSlot lhs, ExprSlot rhs) {
-  const Expr e = make(Expr, .assign = make(ExprAssignment, .lhs = lhs, .rhs = rhs), .type = Expr__Assignment);
+// METHOD
+// ExprSlot ast_assign_push(Ast* self, ExprSlot lhs, ExprSlot rhs) {
+//   const Expr e = make(Expr, .assign = make(ExprAssignment, .lhs = lhs, .rhs = rhs), .type = Expr__Assignment);
 
-  return ast_push(self, e);
-}
+//   return ast_push(self, e);
+// }
 
-METHOD
-ExprSlot ast_operator_push(Ast* self, ExprSlot lhs, ExprSlot rhs, OperatorType type) {
+// METHOD
+// ExprSlot ast_operator_push(Ast* self, ExprSlot lhs, ExprSlot rhs, OperatorType type) {
 
-  const Expr e = make(Expr, .op = make(ExprOperator, .lhs = lhs, .rhs = rhs, .optype = type), .type = Expr__Operator);
+//   const Expr e = make(Expr, .op = make(ExprOperator, .lhs = lhs, .rhs = rhs, .optype = type), .type = Expr__Operator);
 
-  return ast_push(self, e);  
-}
+//   return ast_push(self, e);  
+// }
 
 void ast_resize(Ast* self, isize new_len) {
 

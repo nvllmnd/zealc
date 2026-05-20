@@ -32,7 +32,7 @@
 #line 1 "./build/keywords.gperf"
 
 	#include "ast/token.h"
-	#include "ast/symbol.h"
+	#include "core/runes.h"
 	#include <assert.h>
 #include <string.h>
 enum

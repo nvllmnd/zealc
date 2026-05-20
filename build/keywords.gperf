@@ -1,6 +1,6 @@
 %{
 	#include "ast/token.h"
-	#include "ast/symbol.h"
+	#include "core/runes.h"
 	#include <assert.h>
 %}
 struct Keyword { i32 id; KeywordType type; }

@@ -45,7 +45,6 @@ ast_lib = static_library(
     'src/ast/expr.c',
     'src/ast/parser.c',
     'src/ast/keywords.c',
-    'src/ast/symbol.c',
     'src/ast/ast.c',
   ),
   include_directories: inc,

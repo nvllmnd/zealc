@@ -1,7 +1,7 @@
 #pragma once
 
-#include <inttypes.h>
 #include <strings.h>
+#include <string.h>
 #include <stdbool.h>
 #include <stdalign.h>
 #include <stdatomic.h>
@@ -16,5 +16,10 @@
 
 #include "nv/core/attributes.h"
 
-#include "nv/memory/cstr.h"
+#include "nv/core/sslice.h"
 #include "nv/core/log.h"
+#include "nv/core/constants.h"
+#include "nv/core/intdefs.h"
+
+#include "nv/memory/error.h"
+#include "nv/memory/layout.h"

@@ -1,7 +1,7 @@
 
 #include <stdio.h>
 
-#include "ast/symbol.h"
+#include "core/runes.h"
 #include "ast/token.h"
 #include "nv/core_types.h"
 #include "nv/core/intdefs.h"
