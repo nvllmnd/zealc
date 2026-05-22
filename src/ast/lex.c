@@ -1154,9 +1154,11 @@ const char* tokentype_string(TokenType tt) {
       return STRINGIFY(Token__Default);
     case Token__Sizeof:
       return STRINGIFY(Token__Sizeof);
+    case Token__Print:
+      return STRINGIFY(Token__Print);
+    case Token__Println:
+      return STRINGIFY(Token__Println);
     case Token__KeywordsEnd:
-      [[fallthrough]];
-    case Token__KeywordCount:
       return TT_CONST;
       break;
   }

@@ -1,12 +1,15 @@
 #pragma once
 
-#include <unistd.h>
-
+#include <assert.h>
+#include "nv/core/attributes.h"
 #include "nv/core/buffer.h"
+#include "nv/core_types.h"
 #include "nv/memory/cstr.h"
 #include "runes.h"
 
+
 typedef enum ExprType {
+  Expr__Invalid = -1,
   Expr__Unit,
   Expr__Bool,
   Expr__Int,
@@ -21,6 +24,7 @@ typedef enum ExprType {
   Expr__Assignment,
   Expr__Call,
   Expr__Operator,
+  Expr__PrintCall,
 } ExprType;
 
 typedef enum ExprStmtType {
@@ -61,17 +65,29 @@ typedef enum ExprStmtType {
 } ExprStmtType;
 
 typedef enum OperatorType {
-  OperatorType__Plus,
-  OperatorType__Minus,
-  OperatorType__Mul,
-  OperatorType__Div,
-  OperatorType__Modulo,
-  OperatorType__Concat,
+  Operator__Plus,
+  Operator__Minus,
+  Operator__Mul,
+  Operator__Div,
+  Operator__Modulo,
+  Operator__Concat,
+  Operator__And,
+  Operator__Or,
+  Operator__BitOr,
+  Operator__BitAnd,
 } OperatorType;
 
 typedef i64 StringId;
 typedef i64 RuneId;
 typedef i32 ExprSlot;
+
+typedef enum PrintType {
+  /// println
+  Print__Newline,
+  /// print
+  Print__Format,
+} PrintType;
+
 
 struct Expr {
   union {
@@ -97,14 +113,128 @@ struct Expr {
       struct Expr* rhs;
       OperatorType optype;
     } op;
-  };
+
+    /// Temporary until we get native function calls working so I dont lose my sanity
+    struct PrintCall {
+      PrintType type;
+      struct Expr* rhs;
+      
+    } pc;
+  } val;
 
   ExprType type;
 };
+
 typedef struct Expr Expr;
 typedef struct AssignmentExpr AssignmentExpr;
 typedef struct CallExpr CallExpr;
 typedef struct OperatorExpr OperatorExpr;
+typedef struct PrintCall PrintCall;
+
+
+/// Type alias for Vec(Expr).
+/// WARN: This is a pointer!!! treat it as such!
+typedef Vec(Expr) VecExpr;
+
+
+
+CONST_FUNC
+static inline bool expr_is_valid(Expr self) {
+  return self.type >= Expr__Unit;
+}
+
+CONST_FUNC
+static inline Expr expr_invalid(void) {
+  return (Expr){.type = Expr__Invalid, .val = {}};
+}
+
+
+CONST_FUNC
+static inline Expr expr_unit(void) {
+  return (Expr){.type = Expr__Unit, .val = {}};
+}
+
+CONST_FUNC
+static inline Expr expr_bool(bool val) {
+  return (Expr){.type = Expr__Bool, .val.b = val};
+}
+
+CONST_FUNC
+static inline Expr expr_int(i64 val) {
+  return (Expr){.type = Expr__Int, .val.i = val};
+}
+
+CONST_FUNC
+static inline Expr expr_float(f64 val) {
+  return (Expr){.type = Expr__Float, .val.f = val};
+}
+
+CONST_FUNC
+static inline Expr expr_rune(Rune val) {
+  return (Expr){.type = Expr__Rune, .val.rune = val};
+}
+
+CONST_FUNC
+static inline Expr expr_strlit(Rune val) {
+  return (Expr){.type = Expr__StringLiteral, .val.rune = val};
+}
+
+CONST_FUNC
+static inline Expr expr_ident(Rune val) {
+  return (Expr){.type = Expr__Ident, .val.rune = val};
+}
+
+CONST_FUNC
+static inline Expr expr_list(Vec(Expr) val) {
+  return (Expr){.type = Expr__List, .val.list = val};
+}
+
+/// Creates a new List Expr with a variadic number of [Expr]s.
+/// Count parameter includes the first Expr param, as the @param (Expr first) is
+/// solely for clarity that this function takes a variadic number of Exprs
+/// Takes an [Allocator] param to create the Vec needed for this List Expr
+CONST_FUNC
+Expr expr_vlist(Allocator alloc, i32 count, Expr first, ...);
+
+CONST_FUNC
+PARAMS_NONNULL(1,2)
+static inline Expr expr_assign(Expr* lhs, Expr* rhs) {
+  assert(lhs);
+  assert(rhs);
+  return (Expr){.type = Expr__Assignment, .val.assign = {.lhs = lhs, .rhs = rhs}};
+}
+
+CONST_FUNC
+PARAMS_NONNULL(1,2)
+static inline Expr expr_call(Expr* callee, Vec(Expr) args) {
+  assert(callee);
+  assert(args);
+  return (Expr){.type = Expr__Call, .val.call = {.callee = callee, .args = args}};
+}
+
+/// Creates a new Call Expr with a variadic number of [Expr]s as arguments.
+/// Count parameter includes the first Expr param, as the @param (Expr first) is
+/// solely for clarity that this function takes a variadic number of Exprs
+/// Takes an [Allocator] param to create the Vec needed for this CallExpr
+CONST_FUNC
+PARAMS_NONNULL(2)
+Expr expr_vcall(Allocator alloc, Expr* callee, i32 count, Expr first, ...);
+  
+CONST_FUNC
+PARAMS_NONNULL(1,2)
+static inline Expr expr_operator(Expr* lhs, Expr* rhs, OperatorType type) {
+  assert(lhs);
+  assert(rhs);
+  return (Expr){.type = Expr__Operator, .val.op = {.lhs = lhs, .rhs = rhs, .optype = type}};
+}
+
+CONST_FUNC
+PARAMS_NONNULL(1)
+static inline Expr expr_print_call(Expr* rhs, PrintType type) {
+  assert(rhs);
+  return (Expr){.type = Expr__PrintCall, .val.pc = {.type = type, .rhs = rhs}};
+}
+
 
 typedef enum WhenExprStmtType { When__Branch, When__Else, When__End } WhenExprStmtType;
 
@@ -174,64 +304,4 @@ struct ExprStmt {
     Expr expr;
   };
 };
-
-// struct WhenFormList {
-//   struct WhenForm* start;
-//   i32 len;
-// };
-// typedef struct WhenFormList WhenFormList;
-
-// typedef enum WhenFormType {
-//   WhenForm__Branch,
-//   WhenForm__Else,
-//   WhenForm__End,
-// } WhenFormType;
-
-// struct WhenForm {
-//   union {
-//     struct WhenFormBranch {
-//       Expr* cond;
-//       struct ExprStmt* body;
-//     } branch;
-//     struct ExprStmt* else_branch;
-//     // end variant has no data, but can be accessed through [WhenFormType] type field on in this struct
-//   };
-
-//   WhenFormType type;
-// };
-// typedef struct WhenForm WhenForm;
-// typedef struct WhenFormBranch WhenFormBranch;
-
-// struct ExprStmtList {
-//   struct ExprStmt* start;
-//   i32 len;
-// };
-// typedef struct ExprStmtList ExprStmtList;
-
-// struct FuncDecl {
-//   cstr
-// };
-// typedef struct FuncDecl FuncDecl;
-
-// struct ExprStmt {
-//   union {
-//     ExprStmtList block;
-//     ExprStmtList loop;
-//     struct WhileLoopStmt {
-//       Expr* cond;
-//       ExprStmtList body;
-//     } wloop;
-//   } when;
-// };
-
-// ExprStmtType type;
-
-// typedef struct ExprStmt ExprStmt;
-// struct WhenForm {
-//  union {
-//     struct WhenFormBranch {
-//       Expr* cond;
-//       struct ExprStmt* body;
-//     } branch;
-//   }* start;
-// };
+typedef struct ExprStmt ExprStmt;

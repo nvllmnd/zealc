@@ -41,6 +41,8 @@ derive, Keyword__Derive,
 dyn, Keyword__Dyn,
 default, Keyword__Default,
 sizeof, Keyword__Sizeof,
+print, Keyword__Print,
+println, Keyword__Println,
 %%
 
 const char* kw_string(const Keyword* self) {

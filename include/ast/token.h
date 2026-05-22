@@ -191,6 +191,8 @@ typedef enum TokenType : i32 {
   Token__Dyn,
   Token__Default,
   Token__Sizeof,
+  Token__Print,
+  Token__Println,
   Token__KeywordsEnd,
   Token__KeywordCount = (Token__KeywordsEnd - Token__KeywordsStart) - 1,
   // Token__,

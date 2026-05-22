@@ -48,6 +48,8 @@ typedef enum KeywordType {
   Keyword__Dyn,
   Keyword__Default,
   Keyword__Sizeof,
+  Keyword__Print,
+  Keyword__Println,
 
   Keyword__Count = Token__KeywordCount,
 
