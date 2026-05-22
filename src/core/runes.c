@@ -3,19 +3,20 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "nv/core/algo.h"
-#include "nv/core/attributes.h"
-#include "nv/core/buffer.h"
-#include "nv/core/constants.h"
-#include "nv/core/intdefs.h"
-#include "nv/core/log.h"
-#include "nv/core/sslice.h"
-#include "nv/core_types.h"
+#include "error.h"
+#include "nv/core.h"
+
 #include "nv/memory/alloc.h"
 #include "nv/memory/arena.h"
 
 typedef enum RuneType { Rune__Empty = 0, Rune__Used, Rune__TypeCount } RuneType;
 typedef struct RuneTable RuneTable;
+
+static inline f64 load_factor(i32 lencap, i32 count) {
+  const f64 len = cast(f64, lencap <= 0 ? 1 : lencap);
+  const f64 c = cast(f64, count);
+  return c / len;
+}
 
 static constexpr const f32 LOAD_FACTOR = 0.75;
 
@@ -29,11 +30,6 @@ alias(RuneEntry);
 
 static void runetab_rehash_entries(RuneTable* self, const Vec(RuneEntry) old_entries);
 
-// NOTE: Yes this struct is tiny, and yes we are fine with allocating it as an opaque pointer. Most allocators own or
-// allocate into contiguous virtual memory, so the cost of allocations are cheap, so allocating this tiny guy is ok. If
-// we are really obsessed with this tiny struct residing in memory that isnt dynamicall allocated/managed, then use
-// StaticAlloc to allocate the oqaque pointer plus Since we allocate into contiguous virtual memory, there is a great
-// chance this RuneTable struct will live right next to the entries it contains in memory
 struct RuneTable {
   Vec(RuneEntry) entries;
   i32 entries_count;
@@ -42,26 +38,33 @@ struct RuneTable {
 };
 
 static RuneTable RT = {};
-static Allocator RT_ALLOC = {};
+/// [RuneTable]'s inner [Arena] allocator. chaching it here so we dont have to keep creating one everytime we need to
+/// allocate or resize our entry vec
+static Allocator RT_ARENA = {};
 
-void runetab_init(i32 entry_len, i32 name_storage_in_mb) {
+static constexpr const i32 RT_ARENA_INIT_CAPACITY = KILOBYTES(8);
+
+ZError runetab_init(i32 entry_len, i32 name_storage_in_mb) {
   assert(entry_len > 0);
   assert(name_storage_in_mb > 2);
 
-  if UNLIKELY (is_not_null(RT.entries) && is_not_null(RT.alloc)) {
-    return;
+  // we are already initialized if we have a non-null pointer to an Arena already
+  // this funciton is the only place where there is a call to [arena_new], so if we have a non-null pointer to an [Arena], we had to have
+  // already called this function before
+  if UNLIKELY (is_not_null(RT.alloc)) {
+    return ZOK;
   }
 
-  Arena* arena = arena_new(name_storage_in_mb, KILOBYTES(8));
+  Arena* arena = arena_new(name_storage_in_mb, RT_ARENA_INIT_CAPACITY);
   if UNLIKELY (is_null(arena)) {
     LOG_DBG(FILE_FMT " :: Failed to create new Arena of size %dMB and init capacity: %d",
             FILE_FMT_ARGS(RuneTable, name_storage_in_mb, KILOBYTES(1)));
-    return;
+    return ZError__FailedNewOrInitArenaAlloc;
   }
 
   RT.alloc = arena;
-  RT_ALLOC = arena_allocator(RT.alloc);
-  RT.entries = vec_new(RuneEntry, entry_len, RT_ALLOC);
+  RT_ARENA = arena_allocator(RT.alloc);
+  RT.entries = vec_new(RuneEntry, entry_len, RT_ARENA);
   RT.entries_count = 0;
 
   if UNLIKELY (is_null(RT.entries)) {
@@ -69,16 +72,23 @@ void runetab_init(i32 entry_len, i32 name_storage_in_mb) {
             FILE_FMT_ARGS(RuneTable, (i32)sizeof(RuneEntry) * entry_len));
     arena_destroy(RT.alloc);
     memset(&RT, 0, sizeof(RuneTable));
-    memset(&RT_ALLOC, 0, sizeof(Allocator));
+    memset(&RT_ARENA, 0, sizeof(Allocator));
 
     assert(RT.entries);
 
-    return;
+    return ZError__ArenaAllocatorOOM;
   }
+
+  vec_grow_to_cap(RT.entries);
+
+
+  return ZOK;
 }
 
+
+
 i32 runetab_grow(i32 new_entry_len) {
-  assert(allocator_is_ok(RT_ALLOC));
+  assert(allocator_is_ok(RT_ARENA));
   assert(RT.entries);
   assert(new_entry_len > 0);
 
@@ -91,14 +101,16 @@ i32 runetab_grow(i32 new_entry_len) {
 
   Vec(RuneEntry) const old_entries = RT.entries;
 
-  const f32 next_load_factor = (f32)new_entry_len / RT.entries_count;
 
+  const f64 next_load_factor = load_factor(new_entry_len, RT.entries_count);
   // make sure next load factor is large enough, otherwise this resize is pretty useless!
   if (next_load_factor > LOAD_FACTOR) {
     new_entry_len *= 4;
   }
 
-  RT.entries = vec_resize(RT.entries, new_entry_len, RT_ALLOC);
+  assert(load_factor(new_entry_len, RT.entries_count) < LOAD_FACTOR);
+
+  RT.entries = vec_resize(RT.entries, new_entry_len, RT_ARENA);
 
   if UNLIKELY (is_null(RT.entries)) {
     LOG_DBG(FILE_FMT "Unable to resize RuneTable to %d entries!", FILE_FMT_ARGS(RuneTable, new_entry_len));
@@ -115,15 +127,11 @@ i32 runetab_grow(i32 new_entry_len) {
 
 f32 runetab_load_factor(void) {
   assert(RT.entries);
-
-  const i32 len = vec_len(RT.entries);
-  const f32 count = RT.entries_count == 0 ? 1. : (f32)RT.entries_count;
-
-  return len / count;
+  return load_factor(vec_len(RT.entries), RT.entries_count);
 }
 
 Rune runetab_add(sslice name) {
-  assert(allocator_is_ok(RT_ALLOC));
+  assert(allocator_is_ok(RT_ARENA));
   assert(name.begin);
   assert(name.len > 0);
 
@@ -141,16 +149,18 @@ Rune runetab_add(sslice name) {
   }
 
   if UNLIKELY (is_null(RT.entries)) {
-    RT.entries = vec_new(RuneEntry, KILOBYTES(1), RT_ALLOC);
+    RT.entries = vec_new(RuneEntry, KILOBYTES(1), RT_ARENA);
     vec_grow_to_cap(RT.entries);
   }
 
   if UNLIKELY (vec_len(RT.entries) == 0) {
-    vec_resize(RT.entries, KILOBYTES(1), RT_ALLOC);
+    vec_resize(RT.entries, KILOBYTES(1), RT_ARENA);
   }
 
   if UNLIKELY (runetab_load_factor() >= LOAD_FACTOR) {
     runetab_grow(vec_len(RT.entries) * 4);
+    // sanity check!
+    assert(runetab_load_factor() < LOAD_FACTOR);
   }
 
   const Rune r = runetab_lookup(name);
@@ -164,14 +174,12 @@ Rune runetab_add(sslice name) {
 
   const i32 index = cast(i32, hash & mask);
 
-  RuneEntry* entry = &RT.entries[index];
 
-  for (i32 i = clamp(index + 1, 0, len - 1); i < len; i++) {
-    entry = &RT.entries[i];
+  for (i32 i = index, count = 0; count < len; i++, count++) {
+    RuneEntry* entry = &RT.entries[i];
 
-    // we only have to worry about insertion here, since we do a full lookup above with the call to runetab_lookup_rune
+    // we only have to worry about insertion here, since we do a full lookup above with the call to runetab_lookup
     // so we know if we got here, we did not find an entry at this hashed index
-
     if (entry->type == Rune__Empty) {
       const char* s = arena_strndup(RT.alloc, name.begin, name.len);
       const sslice sl = sslice_new(s, name.len);
@@ -182,21 +190,13 @@ Rune runetab_add(sslice name) {
       return make(Rune, .hash = entry->hash, .name = entry->name, .kwtype = Keyword__None);
     }
 
-    if UNLIKELY (i == index) {
-
-      LOG_DBG(FILE_FMT
-              "Did a full scan of RuneTable while looking up name: %.*s for insertion, but was not able to find it or an empty cell to insert into "
-              "Something is big wrong!",
-              FILE_FMT_ARGS(RuneTable, name.len, name.begin));
-      return RUNE_NONE;
-    }
-
     if (i + 1 >= len) {
       i = 0;
     }
   }
 
-  LOG_DBG("Something went wrong when trying to add rune: %.*s to RuneTable!", name.len, name.begin);
+  // Since we ensure load factor is < 0.75 above, we should never, ever get here
+  LOG_DBG("Something went wrong when trying to add rune: %.*s to RuneTable!", RSSPREAD(name));
   assert(false);
 
   UNREACHABLE();
@@ -210,6 +210,28 @@ bool runetab_has_str(const char* string, i32 string_len) {
   const sslice name = sslice_new(.begin = string, .len = string_len);
   const Rune rune = runetab_lookup(name);
   return !rune_is_none(rune);
+
+}
+
+
+bool runetab_get(sslice name, Rune* out) {
+  assert(name.begin);  
+  assert(name.len > 0);
+
+  const Rune entry = runetab_lookup(name);
+  if (!rune_is_ok(entry)) {
+    return false; 
+  }
+
+  // we found a value entry for this name, but out param is null, we are done, signal to caller
+  // name is found in global RuneTable and return true
+  if (is_null(out)) {
+    return true;
+  }
+
+  *out = entry;
+  return true;
+
 }
 
 Rune runetab_lookup(sslice name) {
@@ -231,7 +253,7 @@ Rune runetab_lookup(sslice name) {
 
   const i32 index = cast(i32, hash & mask);
 
-  for (i32 i = clamp(index, 0, elen - 1); i < elen; i++) {
+  for (i32 i = index, count = 0; count < elen; i++, count++) {
     const RuneEntry* entry = &RT.entries[i];
 
     if (entry->type == Rune__Empty) {
@@ -242,21 +264,9 @@ Rune runetab_lookup(sslice name) {
       if LIKELY (sslice_eq(entry->name, name)) {
         return make(Rune, .hash = hash, .name = entry->name, .kwtype = Keyword__None);
       }
-      LOG_DBG("Looking up %.*s in RuneTable matches entry hash, but not the entry string value! %.*s", name.len,
-              name.begin, entry->name.len, entry->name.begin);
+      LOG_DBG("Looking up %.*s in RuneTable matches entry hash, but not the entry string value! %.*s", RSSPREAD(name),
+              RSSPREAD(entry->name));
       continue;
-    }
-
-    // we looped all the way around, but havent found this entry, this should only happen if given name does not exist
-    // in this table (though realistically, not at all, we dont remove entries and only do lookups and additions when
-    // load factor is < 0.75, so ending up here is VERY! unlikely)
-    // TODO: As soon as im certain this branch will never be taken, we can put a UNREACHABLE here or something...
-    if UNLIKELY (i == index) {
-      LOG_DBG(FILE_FMT
-              "Did a full scan of RuneTable while looking up name: %.*s but was not able to find it or an empty cell. "
-              "Something is big wrong!",
-              FILE_FMT_ARGS(RuneTable, name.len, name.begin));
-      return RUNE_NONE;
     }
 
     if (i + 1 >= elen) {
@@ -267,28 +277,11 @@ Rune runetab_lookup(sslice name) {
   return RUNE_NONE;
 }
 
-// METHOD
-// PURE_FUNC
-// sslice runetab_lookup(const RuneTable* self, Rune rune) {
-//   assert(self);
-//   assert(self->entries);
-//   assert(rune.id != RUNE_NONE.id || self->entries_count == 0);
-//   if (rune.parent != self) {
-//     return sslice_empty();
-//   }
-//   assert(rune.id < vec_len(self->entries));
-//   const RuneEntry entry = self->entries[rune.id];
-//   if (entry.type == Rune__Empty) {
-//     return sslice_empty();
-//   }
-//   return entry.name;
-// }
-
 void runetab_destroy(void) {
   if (is_not_null(RT.alloc)) {
     arena_destroy(RT.alloc);
     memset(&RT, 0, sizeof(RuneTable));
-    memset(&RT_ALLOC, 0, sizeof(Allocator));
+    memset(&RT_ARENA, 0, sizeof(Allocator));
   }
 }
 
@@ -304,7 +297,6 @@ void runetab_rehash_entries(RuneTable* self, const Vec(RuneEntry) old_entries) {
     const u64 hash = entry.hash;
 
     const i32 index = (hash & mask);
-    assert(index < entries_len);
 
     {
       RuneEntry* next = &entries[index];
@@ -316,7 +308,7 @@ void runetab_rehash_entries(RuneTable* self, const Vec(RuneEntry) old_entries) {
       LOG_DBG(FILE_FMT
               "Hash collision for entry: %.*s. Starting linear probe! If this is happening often (or really any more "
               "than very infrequently) then you may want to increase the capacity of that RuneTable's RuneEntry Vec!",
-              FILE_FMT_ARGS(RuneTable, entry.name.len, entry.name.begin));
+              FILE_FMT_ARGS(RuneTable, RSSPREAD(entry.name)));
 
       // linear probe through Entries to find an empty cell.
       // this should only happen rarely (if at all) in case of hash collision
@@ -344,7 +336,7 @@ void runetab_rehash_entries(RuneTable* self, const Vec(RuneEntry) old_entries) {
 }
 
 void runetab_clear(void) {
-  assert(allocator_is_ok(RT_ALLOC));
+  assert(allocator_is_ok(RT_ARENA));
   arena_clear(RT.alloc);
 
   RT.entries = nullptr;
@@ -354,7 +346,7 @@ void runetab_print_entries(void) {
   println("====== Printing RuneTable Entries: ======");
   vec_for(RT.entries) {
     const RuneEntry entry = RT.entries[i];
-    println("#%d: %*.s", i + 1, entry.name.len, entry.name.begin);
+    println("#%d: %*.s", i + 1, RSSPREAD(entry.name));
   }
   println("====== End RuneTable Entries ======");
 }
@@ -372,7 +364,7 @@ sslice kw_sslice(const Keyword* self) {
   return sslice_new(s, len);
 }
 
-const Keyword* kw_lookup(sslice str) { return kw_lookup_str(str.begin, str.len); }
+const Keyword* kw_lookup(sslice str) { return kw_lookup_str(SSPREAD(str)); }
 const char* kw_literal(Keyword kw) {
   assert(kw.type >= Keyword__True && kw.type < Keyword__Count);
 

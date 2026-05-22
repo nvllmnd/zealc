@@ -2,6 +2,7 @@
 
 #include "ast/token.h"
 #include "nv/core/attributes.h"
+#include "nv/core_types.h"
 
 typedef enum LexError {
   /// No Error! OK!
@@ -111,18 +112,20 @@ LexState lexer_peek_next(const LexState* self);
 //   for(int __i__ = 0; __i__ == 0; __i__++) \
 //     for (init; __i__ == 0; __i__++, freer((x)))
                         
+struct LexIter {
+  Token tok;
+  LexError err;
+};
+typedef struct LexIter LexIter;
   
 
 #define LEXER_FOREACH(self, ctx) /* a convieneince macro for iterating over a source string given a lexer and a name \
                                     for the variable of the context struct that contains the current [Token] and a   \
                                     [LexError] value. You can also use the [LEXER_FOREACH] macro that is the same    \
                                     thing as this macro, but defaults the struct value name to be 'ctx' */           \
-  for (struct {                                                                                                      \
-         Token tok;                                                                                                  \
-         LexError err;                                                                                               \
-       } ctx = {.tok = {}, .err = LexError__Ok};                                                                     \
+  for (LexIter ctx = {.tok = {}, .err = LexError__Ok};                                                                     \
        lex_check_ok(&ctx.tok, ctx.err); ctx.err = lexer_next(&self, &ctx.tok))
 
 #define LEXER_FOREACH_CTX(self) /* Same as the [LEXER_FOREACH] macro, but provides 'ctx' as its second parameter, \
                                    making the context struct variable name: 'ctx' */                              \
-  LEXER_FOREACH_CTX((self), ctx)
+  LEXER_FOREACH((self), ctx)

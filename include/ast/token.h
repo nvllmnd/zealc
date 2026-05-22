@@ -235,7 +235,6 @@ struct Token {
     char character;
     i64 integer;
     f64 fp;
-    // string literals can be found in lexeme field
-  } literal;
+  } num_literal;
 };
 typedef struct Token Token;

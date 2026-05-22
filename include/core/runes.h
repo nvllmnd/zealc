@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "ast/token.h"
+#include "error.h"
 #include "nv/core/attributes.h"
 #include "nv/core/intdefs.h"
 #include "nv/core/sslice.h"
@@ -152,7 +153,8 @@ static inline bool rune_eq(Rune left, Rune right) {
 
 static constexpr const i32 RUNE_MAX_SIZE = INT16_MAX;
 
-void runetab_init(i32 entry_len, i32 name_storage_in_mb);
+RETURNS_ERROR
+ZError runetab_init(i32 entry_len, i32 name_storage_in_mb);
 
 PURE_FUNC
 f32 runetab_load_factor(void);
@@ -170,6 +172,16 @@ bool runetab_has_str(const char* string, i32 string_len);
 
 PURE_FUNC
 Rune runetab_lookup(sslice name);
+
+/// looks up @param (sslice name) in global RuneTable,
+/// If name exists in global RuneTable, @param (Rune* out) is filled in with the
+/// Rune data pointing to the entry in the global RuneTable for that name.
+/// If @param (Rune* out) is nullptr, this parameter is ignored.
+/// @returns true if name exists in global RuneTable, false otherwise.
+/// @param (Rune* out) is only touched when name exists in global RuneTable AND that parameter is non-null.
+/// as such, it is safe to pass nullptr as this function second parameter, and it functions exaclty as if you were to
+/// call [runetab_has_str] with @param (sslice name), contents as its parameters
+bool runetab_get(sslice name, Rune* out);
 
 void runetab_destroy(void);
 

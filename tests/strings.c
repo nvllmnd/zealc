@@ -1,16 +1,80 @@
 
-#include <stdio.h>
 
-#include "core/runes.h"
 #include "ast/token.h"
-#include "nv/core_types.h"
+#include "core/runes.h"
+#include "nv/core/constants.h"
 #include "nv/core/intdefs.h"
+#include "nv/core/sslice.h"
+#include "nv/core_types.h"
 #include "nv/memory/cstr.h"
 #include "unity.h"
+#include "nv/core/log.h"
 
-void setUp(void) {}
+void setUp(void) {
+  const ZError err = runetab_init(KILOBYTES(1), 4);
+  if (err != ZOK) {
+    LOG("Failed to initialize RuneTable! ERR: %d", err);
+  }
+}
 
-void tearDown(void) {}
+void tearDown(void) {
+  runetab_destroy();
+
+
+}
+
+struct KW {
+  sslice name;
+  KeywordType type;
+};
+alias(KW);
+
+static constexpr const KW KWS[] = {
+  make(KW, .name =sslice_static_new("if"), .type = Keyword__If ),
+         make(KW, .name = sslice_static_new("struct"), .type = Keyword__Struct),
+
+    make(KW, sslice_static_new("while"), Keyword__While),
+
+    make(KW,sslice_static_new("else"), Keyword__Else),
+
+    make(KW, sslice_static_new("when"),Keyword__When),
+
+    make(KW, sslice_static_new("trait"), Keyword__Trait),
+
+    make(KW, sslice_static_new("const"), Keyword__Const),
+
+    make(KW, sslice_static_new("let"), Keyword__Let),
+
+
+    make(KW, sslice_static_new("fn"), Keyword__Fn),
+
+    make(KW, sslice_static_new("return"), Keyword__Return),
+    make(KW, sslice_static_new("loop"), Keyword__Loop),
+
+};
+
+void runetab_keywords(void) {
+  static constexpr const i32 LEN = sizeof(KWS) / sizeof(KW);
+  for (i32 i = 0; i < LEN; i++) {
+    const Rune kw = runetab_lookup(KWS[i].name);
+    TEST_ASSERT_NOT_NULL(kw.name.begin);
+    TEST_ASSERT_NOT_EQUAL(0, kw.name.len);
+    TEST_ASSERT_EQUAL(KWS[i].type, kw.kwtype);
+    TEST_ASSERT_EQUAL_STRING_LEN(KWS[i].name.begin, kw.name.begin, KWS[i].name.len);
+  }
+}
+
+void runetab_add_and_lookup(void) {
+  static constexpr const sslice VALUE = sslice_static_new("value");
+  const Rune a = runetab_add(VALUE);
+  TEST_ASSERT_FALSE(rune_is_none(a));
+  TEST_ASSERT_EQUAL_STRING_LEN(VALUE.begin, a.name.begin, VALUE.len);
+
+  const Rune b = runetab_lookup(VALUE);
+  TEST_ASSERT_TRUE(rune_eq(a, b));
+  TEST_ASSERT_EQUAL_PTR(b.name.begin, a.name.begin);
+
+}
 
 void move_memory_helpers(void) {
   typedef struct Resource {
@@ -65,10 +129,6 @@ void move_memory_helpers(void) {
     TEST_ASSERT_EQUAL_STRING(b.buf, INPUT);
     TEST_ASSERT_NULL(a.buf);
   }
-
-
-
-  
 }
 
 void keyword_lookup_table(void) {
@@ -126,6 +186,8 @@ i32 main(void) {
   RUN_TEST(string_compare);
   RUN_TEST(keyword_lookup_table);
   RUN_TEST(move_memory_helpers);
+  RUN_TEST(runetab_keywords);
+  RUN_TEST(runetab_add_and_lookup);
 
   return UNITY_END();
 }

@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include "ast/lex.h"
+#include "nv/core/debug.h"
 #include "nv/core/constants.h"
 #include "nv/core/log.h"
 

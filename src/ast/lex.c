@@ -742,8 +742,8 @@ static LexError lexer_identifier(LexState* self, Token* tok) {
 
     const i32 end = self->cursor.i;
     tok->lexeme = lexer_slice(self, start, end);
+    tok->type = Token__Identifier;
 
-    // tok->type = Token__Identifier;
     return LexError__Ok;
   } else {
     // otherwise this is not a valid identifier
@@ -802,7 +802,7 @@ static LexError lexer_float(LexState* self, Token* tok, i32 start) {
     return LexError__FloatParseFail;
   }
 
-  tok->literal.fp = lit;
+  tok->num_literal.fp = lit;
 
   return LexError__Ok;
 }
@@ -843,7 +843,7 @@ static LexError lexer_integer(LexState* self, Token* tok) {
     return LexError__IntegerParseFail;
   }
 
-  tok->literal.integer = lit;
+  tok->num_literal.integer = lit;
 
   return LexError__Ok;
 }
