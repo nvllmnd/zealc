@@ -4,6 +4,19 @@
 #include <unistd.h>
 
 #include "ast/lex.h"
+
+#ifdef NDEBUG
+#define LIBNV_DEBUG 0
+#ifndef ZEAL_DEBUG
+#define ZEAL_DEBUG 0
+#endif 
+#else
+#define LIBNV_DEBUG 1
+#ifndef ZEAL_DEBUG
+#define ZEAL_DEBUG 1
+#endif
+#endif
+
 #include "nv/core/debug.h"
 #include "nv/core/constants.h"
 #include "nv/core/log.h"
@@ -36,13 +49,13 @@ CmdArgs parse_cmd_args(i32 argc, char** argv) {
 static i32 repl(void);
 
 i32 eval_string(const char* s) {
-  LOG_DBG("eval_string(\"%s\")", s);
+  LOG("eval_string(\"%s\")", s);
   return 0;  
 }
 
 i32 eval_file(const char* filepath) {
 
-  LOG_DBG("eval_file(\"%s\")", filepath);
+  LOG("eval_file(\"%s\")", filepath);
   return 0;    
 }
 

@@ -2,6 +2,9 @@
 
 #include <stdarg.h>
 
+#include "ast/lex.h"
+#include "ast/token.h"
+#include "nv/core/log.h"
 #include "nv/memory/alloc.h"
 
 
@@ -49,4 +52,75 @@ Expr expr_vcall(Allocator alloc, Expr* callee, i32 count, Expr first, ...) {
 
   va_end(args);
   return expr_call(callee, expr_args);
+}
+
+OperatorType tokentype_optype(TokenType tt) {
+  switch(tt) {
+   case Token__Gt: {
+       return Operator__Gt;
+     } break; 
+   case Token__GtEq: {
+       return Operator__Gte;
+     } break; 
+   case Token__Lt: {
+       return Operator__Lt;
+       
+     } break; 
+   case Token__LtEq: {
+       return Operator__Lte;
+     } break; 
+   case Token__DoubleEq: {
+       return Operator__Eq;
+       
+     } break; 
+   case Token__BangEq: {
+       return Operator__NotEq;
+       
+     } break; 
+
+   case Token__Plus: {
+       return Operator__Plus;
+       
+     } break; 
+   case Token__Minus: {
+       return Operator__Minus;
+
+       
+     } break; 
+   case Token__Star: {
+       return Operator__Mul;
+       
+     } break; 
+   case Token__ForwardSlash: {
+       return Operator__Div;
+       
+     } break; 
+   case Token__Percent: {
+       return Operator__Modulo;
+       
+     } break; 
+   case Token__And: {
+       return Operator__And;
+       
+     } break;    
+   case Token__Or: {
+       return Operator__Or;
+       
+     } break; 
+   case Token__Pipe: {
+       return Operator__BitOr;
+       
+     } break; 
+
+   case Token__Ampersand: {
+       return Operator__BitAnd;
+       
+     } break; 
+    default: {
+      LOG("TokenType: %s does not map to any OperatorType", tokentype_string(tt));
+      return Operator__Invalid;
+    } break;
+
+
+  }
 }

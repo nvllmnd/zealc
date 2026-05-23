@@ -103,8 +103,8 @@ bool parser_is_eof(const Parser* self);
 CONST_FUNC
 static inline bool perror_is_ok(ParseError e) { return e >= ParseErr__Ok; }
 
-METHOD
-ParseError advance(Parser* self);
+// METHOD
+// ParseError try_advance(Parser* self);
 
 PURE_FUNC
 Parser parser_new(struct Arena* alloc);

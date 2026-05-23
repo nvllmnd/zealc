@@ -12,6 +12,7 @@
 #include "nv/core/log.h"
 #include "nv/core_types.h"
 #include "nv/memory/arena.h"
+#include "runes.h"
 
 const char* parse_error_string(ParseError e) {
   switch (e) {
@@ -48,6 +49,14 @@ const char* parse_error_string(ParseError e) {
     } break;
   }
 }
+
+PURE_FUNC
+METHOD
+static TokenType peektype(Parser* self) {
+  assert(self);
+  return self->current.type;
+}
+
 RETURNS_NON_NULL
 RETURNS_RESOURCE
 METHOD
@@ -56,7 +65,16 @@ static inline Expr* pexpr_new(Parser* self) {
   return pexpect(e, "Parser Arena failed to allocate new Expr!");
 }
 
+RETURNS_ERROR
 METHOD
+static ParseError try_advance(Parser* self);
+
+/// Returns false upon reaching Eof, otherwise true while parsing
+METHOD
+static bool advance(Parser* self);
+
+METHOD
+[[maybe_unused]]
 static Expr* parser_add_expr(Parser* self, Expr e);
 
 RETURNS_NON_NULL
@@ -134,6 +152,7 @@ static inline Expr* pexpr_list_new(Parser* self, Vec(Expr) val) {
 RETURNS_NON_NULL
 RETURNS_RESOURCE
 METHOD
+[[maybe_unused]]
 static inline Expr* pexpr_vlist_new(Parser* self, i32 count, ...) {
   assert(self);
   assert(count > 0);
@@ -169,6 +188,7 @@ static inline Expr* pexpr_assign_new(Parser* self, Expr* lhs, Expr* rhs) {
 RETURNS_NON_NULL
 RETURNS_RESOURCE
 PARAMS_NONNULL(1, 2, 3)
+[[maybe_unused]]
 static inline Expr* pexpr_call_new(Parser* self, Expr* callee, Vec(Expr) args) {
   assert(self);
   assert(callee);
@@ -182,19 +202,53 @@ static inline Expr* pexpr_call_new(Parser* self, Expr* callee, Vec(Expr) args) {
 RETURNS_NON_NULL
 RETURNS_RESOURCE
 PARAMS_NONNULL(1, 2, 3)
-static inline Expr* pexpr_operator_new(Parser* self, Expr* lhs, Expr* rhs, OperatorType type) {
+static inline Expr* pexpr_binop_new(Parser* self, Expr* lhs, Expr* rhs, OperatorType type) {
   assert(self);
   assert(lhs);
   assert(rhs);
   Expr* e = pexpr_new(self);
-  e->type = Expr__Operator;
-  e->val.op = make(OperatorExpr, .lhs = lhs, .rhs = rhs, .optype = type);
+  e->type = Expr__BinOp;
+  e->val.binop = make(BinOpExpr, .lhs = lhs, .rhs = rhs, .optype = type);
   return e;
 }
 
 RETURNS_NON_NULL
 RETURNS_RESOURCE
 PARAMS_NONNULL(1, 2)
+static inline Expr* pexpr_unaryop_new(Parser* self, Expr* rhs, OperatorType ot) {
+  assert(self);
+  assert(rhs);
+  assert(ot == Operator__Not || ot == Operator__Negate);
+
+  Expr* e = pexpr_new(self);
+  e->type = Expr__UnaryOp;
+  e->val.uop = make(UnaryOpExpr, .rhs = rhs, .optype = ot);
+  return e;
+}
+
+RETURNS_NON_NULL
+RETURNS_RESOURCE
+[[maybe_unused]]
+PARAMS_NONNULL(1) static inline Expr* pexpr_binop_add(Parser* self, Expr lhs, Expr rhs, OperatorType type) {
+  assert(self);
+
+  Expr* l = pexpr_new(self);
+  assert(l);
+  *l = lhs;
+
+  Expr* r = pexpr_new(self);
+  assert(r);
+  *r = rhs;
+
+  Expr* e = pexpr_new(self);
+  e->type = Expr__BinOp;
+  e->val.binop = make(BinOpExpr, .lhs = l, .rhs = r, .optype = type);
+  return e;
+}
+RETURNS_NON_NULL
+RETURNS_RESOURCE
+PARAMS_NONNULL(1, 2)
+[[maybe_unused]]
 static inline Expr* pexpr_print_new(Parser* self, Expr* rhs, PrintType type) {
   assert(self);
   assert(rhs);
@@ -208,7 +262,7 @@ static ParseError parser_preload(Parser* self);
 
 bool parser_is_eof(const Parser* self) {
   assert(self);
-  return self->current.type == Token__Eof;
+  return self->next.type == Token__Eof && self->current.type == Token__Eof;
 }
 
 METHOD
@@ -223,8 +277,7 @@ static inline void parser_push_error(Parser* self, ParseError perror, LexError l
            .expr_string = self->next.lexeme, .prev = self->current, .curr = self->next);
 }
 
-RETURNS_ERROR
-ParseError advance(Parser* self) {
+ParseError try_advance(Parser* self) {
   assert(self);
 
   if (parser_is_eof(self)) {
@@ -245,41 +298,75 @@ ParseError advance(Parser* self) {
   }
 }
 
+bool advance(Parser* self) {
+  assert(self);
+
+  if UNLIKELY (parser_is_eof(self)) {
+    LOG_DBG("Parser reached EOF!");
+    return false;
+  }
+
+  self->current = self->next;
+
+  const LexError lerr = lexer_next(&self->lex, &self->next);
+  if UNLIKELY (lerr != LexError__Ok) {
+    log_fatal("!!LEX ERROR!! %s", lex_error_string(lerr));
+  }
+  return true;
+}
+
+#define expect_adv(_p)                                    \
+  do {                                                    \
+    if (!advance(_p)) {                                   \
+      log_fatal("Unexpected End of File/Source Stream!"); \
+    }                                                     \
+  } while (0);
+
 METHOD
 static Expr print_stmt(Parser* self, PrintType type);
 
+METHOD
+RETURNS_NON_NULL
 [[maybe_unused]]
-METHOD static ExprStmt* expression_stmt(Parser* self);
+static ExprStmt* expression_stmt(Parser* self);
+
+METHOD
+RETURNS_NON_NULL
+static Expr* expression(Parser* lex);
+
+METHOD
+RETURNS_NON_NULL
+static Expr* assignment(Parser* lex);
+
+METHOD
+RETURNS_NON_NULL
+static Expr* logical_bitwise(Parser* lex);
+
+METHOD
+RETURNS_NON_NULL
+static Expr* comparison(Parser* lex);
+
+
+RETURNS_NON_NULL
+METHOD
+static Expr* term(Parser* lex);
+
+METHOD
+RETURNS_NON_NULL
+static Expr* factor(Parser* lex);
+
+RETURNS_NON_NULL
+METHOD
+static Expr* unary(Parser* lex);
+
+METHOD
+RETURNS_NON_NULL
+static Expr* primary(Parser* lex);
 
 [[maybe_unused]]
-METHOD static Expr expression(Parser* lex);
-
-[[maybe_unused]]
-METHOD static Expr assignment(Parser* lex);
-
-[[maybe_unused]]
-METHOD static Expr logical_bitwise(Parser* lex);
-
-[[maybe_unused]]
-METHOD static Expr comparison(Parser* lex);
-
-[[maybe_unused]]
-METHOD static Expr term(Parser* lex);
-
-[[maybe_unused]]
-METHOD static Expr factor(Parser* lex);
-
-[[maybe_unused]]
-METHOD static Expr unary(Parser* lex);
-
-[[maybe_unused]]
-METHOD static Expr equality(Parser* lex);
-
-[[maybe_unused]]
-METHOD static Expr primary(Parser* lex);
-
-[[maybe_unused]]
-METHOD static ExprStmt* block_expr_stmt(Parser* self);
+METHOD
+RETURNS_NON_NULL
+static ExprStmt* block_expr_stmt(Parser* self);
 
 Parser parser_new(Arena* alloc) {
   assert(alloc);
@@ -328,19 +415,71 @@ static inline bool is_match(Parser* self, TokenType tt) {
 }
 
 METHOD
-static inline void match_advance(Parser* self, TokenType tt) {
-  assert(self);
-  if (is_match(self, tt)) {
-    const ParseError err = advance(self);
-    if (!perror_is_ok(err)) {
-      log_fatal("Parser matched token: %s correctly, but encountered an error when trying to advance forward",
-                tokentype_string(tt));
+[[maybe_unused]]
+static inline bool match_any_(Parser* self, i32 count, ...) {
+  assert(count >= 1);
+  va_list args;
+  va_start(args);
+
+  const TokenType tt = peektype(self);
+
+  for (i32 i = 0; i < count; i++) {
+    const TokenType next = va_arg(args, TokenType);
+    if (next == tt) {
+      va_end(args);
+      return true;
     }
-    return;
-  } else {
-    log_fatal("Expected Token: %s, but got %s", tokentype_string(self->current.type), tokentype_string(tt));
   }
+
+  va_end(args);
+  return false;
 }
+#define match_any(_p, ...) (match_any_(_p, VA_ARGS_LEN(__VA_ARGS__), __VA_ARGS__))
+
+// METHOD
+// static inline void match_advance(Parser* self, TokenType tt) {
+//   assert(self);
+//   if (is_match(self, tt)) {
+//     const ParseError err = advance(self);
+//     if (!perror_is_ok(err)) {
+//       log_fatal("Parser matched token: %s correctly, but encountered an error when trying to advance forward",
+//                 tokentype_string(tt));
+//     }
+//     return;
+//   } else {
+//     log_fatal("Expected Token: %s, but got %s", tokentype_string(self->current.type), tokentype_string(tt));
+//   }
+// }
+
+#define match(_p, ...)                                                                                          \
+  do {                                                                                                          \
+    if (!match_any(_p, __VA_ARGS__)) {                                                                          \
+      log_fatal("Parser expected current token %s to match any of tokens: %s!", tokentype_string(peektype(_p)), \
+                #__VA_ARGS__);                                                                                  \
+    }                                                                                                           \
+  } while (0);
+
+#define match_binop(_p, ...)        \
+  ({                                \
+    match(_p, __VA_ARGS__);         \
+    tokentype_optype(peektype(_p)); \
+  })
+
+#define match_advance(_p, ...)                                                                                  \
+  do {                                                                                                          \
+    if (match_any(_p, __VA_ARGS__)) {                                                                           \
+      const ParseError _err = advance(_p);                                                                      \
+      if (_err < ParseErr__Ok) {                                                                                \
+        log_fatal(                                                                                              \
+            "Parser matched token %s correctly, but encountered an error: %s after "                            \
+            "advancing past match!",                                                                            \
+            tokentype_string(peektype(_p)), parse_error_string(_err));                                          \
+      }                                                                                                         \
+    } else {                                                                                                    \
+      log_fatal("Parser expected current token %s to match any of tokens: %s!", tokentype_string(peektype(_p)), \
+                #__VA_ARGS__);                                                                                  \
+    }                                                                                                           \
+  } while (0)
 
 Ast parser_parse_ast(Parser* self, const char* str, i32 len) {
   assert(str);
@@ -362,7 +501,7 @@ Ast parser_parse_ast(Parser* self, const char* str, i32 len) {
   });
 
   while (!parser_is_eof(self)) {
-    const ParseError perr = advance(self);
+    const ParseError perr = try_advance(self);
     if (perr < ParseErr__Ok) {
       parser_push_error(self, perr, LexError__Ok);
       LOG("Parser encountered Error while advancing through source stream! %s", parse_error_string(perr));
@@ -414,6 +553,8 @@ Ast parser_parse_ast(Parser* self, const char* str, i32 len) {
         break;
     }
 
+    // each root node is not a pointer type, so we dont
+    // have to have extra indirection with a Vec(Expr*)
     vec_push(exprs, e);
   }
 
@@ -431,7 +572,7 @@ ParseError parser_preload(Parser* self) {
   static constexpr const i32 PRELOAD_LEN = 2;
 
   for (i32 i = 0; i < PRELOAD_LEN; i++) {
-    const ParseError err = advance(self);
+    const ParseError err = try_advance(self);
     if (err < ParseErr__Ok) {
       return err;
     }
@@ -453,12 +594,11 @@ static inline void check_expr(Expr e) {
 }
 
 Expr print_stmt(Parser* self, PrintType type) {
-  const Expr e = expression(self);
+  Expr* e = expression(self);
 
-  check_expr(e);
+  check_expr(*e);
 
-  Expr* pe = parser_add_expr(self, e);
-  return expr_print_call(pe, type);
+  return expr_print_call(e, type);
 }
 
 Expr* parser_add_expr(Parser* self, Expr e) {
@@ -466,54 +606,208 @@ Expr* parser_add_expr(Parser* self, Expr e) {
   *mem = e;
   return mem;
 }
-Expr expression(Parser* self) {
+Expr* expression(Parser* self) {
   assert(self);
   return assignment(self);
 }
 
-Expr assignment(Parser* self) {
-  const Expr expr = logical_bitwise(self);
+Expr* assignment(Parser* self) {
+  Expr* expr = logical_bitwise(self);
 
   if (is_match(self, Token__Eq)) {
-    const Expr value = assignment(self);
+    expect_adv(self);
 
-    Expr* lhs = parser_add_expr(self, expr);
-    Expr* rhs = parser_add_expr(self, value);
+    Expr* value = assignment(self);
 
-    return expr_assign(lhs, rhs);
+    return pexpr_assign_new(self, expr, value);
   } else {
     return expr;
   }
 }
-Expr logical_bitwise(Parser* self) {
-  Expr expr = comparison(self);
+
+Expr* logical_bitwise(Parser* self) {
+  Expr* expr = comparison(self);
+  bool done = false;
+  while (!done) {
+    OperatorType op = Operator__Invalid;
+    switch (peektype(self)) {
+      case Token__Or: {
+        op = Operator__Or;
+      } break;
+      case Token__And: {
+        op = Operator__And;
+      } break;
+      default: {
+        done = true;
+        continue;
+      } break;
+    }
+
+    expect_adv(self);
+
+    Expr* rhs = logical_bitwise(self);
+    expr = pexpr_binop_new(self, expr, rhs, op);
+  }
+  return expr;
+}
+
+Expr* comparison(Parser* self) {
+  assert(self);
+  Expr* expr = term(self);
+  bool done = false;
+  while (!done) {
+    OperatorType op = {};
+
+    switch (peektype(self)) {
+      case Token__Gt: {
+        op = Operator__Gt;
+      } break;
+      case Token__GtEq: {
+        op = Operator__Gte;
+      } break;
+      case Token__Lt: {
+        op = Operator__Lt;
+      } break;
+      case Token__LtEq: {
+        op = Operator__Lte;
+      } break;
+      case Token__DoubleEq: {
+        op = Operator__Eq;
+      } break;
+      case Token__BangEq: {
+        op = Operator__NotEq;
+      } break;
+      default: {
+        done = true;
+        continue;
+      } break;
+    }
+    expect_adv(self);
+
+    Expr* rhs = term(self);
+    expr = pexpr_binop_new(self, expr, rhs, op);
+  }
+  return expr;
+}
+
+Expr* term(Parser* self) {
+  Expr* expr = factor(self);
   for (;;) {
-    const TokenType tt = self->current.type;
-    if (tt == Token__Or) {
-      const ParseError err = advance(self);
-      if (err < ParseErr__Ok) {
-        log_fatal("Parser encounterd parse error: %s while parsing logical bitwise expression! Aborting!",
-                  parse_error_string(err));
-      }
-      const OperatorType ot = Operator__Or;
-      Expr right = logical_bitwise(self);
-      Expr* lhs = parser_add_expr(self, expr);
-      Expr* rhs = parser_add_expr(self, right);
-      expr = expr_operator(lhs, rhs, ot);
-    } else if (tt == Token__And) {
-      const ParseError err = advance(self);
-      if (err < ParseErr__Ok) {
-        log_fatal("Parser encounterd parse error: %s while parsing logical bitwise expression! Aborting!",
-                  parse_error_string(err));
-      }
-      const OperatorType ot = Operator__And;
-      Expr right = logical_bitwise(self);
-      Expr* lhs = parser_add_expr(self, expr);
-      Expr* rhs = parser_add_expr(self, right);
-      expr = expr_operator(lhs, rhs, ot);
+    const TokenType tt = peektype(self);
+    OperatorType op = Operator__Invalid;
+    if (tt == Token__Minus) {
+      op = Operator__Minus;
+    } else if (tt == Token__Plus) {
+      op = Operator__Plus;
     } else {
       break;
     }
+    expect_adv(self);
+    Expr* rhs = factor(self);
+
+    expr = pexpr_binop_new(self, expr, rhs, op);
   }
   return expr;
+}
+
+Expr* factor(Parser* self) {
+  Expr* expr = unary(self);
+  for (;;) {
+    const TokenType tt = peektype(self);
+    OperatorType op = Operator__Invalid;
+    if (tt == Token__ForwardSlash) {
+      op = Operator__Minus;
+    } else if (tt == Token__Star) {
+      op = Operator__Plus;
+    } else {
+      break;
+    }
+
+    expect_adv(self);
+
+    Expr* rhs = unary(self);
+
+    expr = pexpr_binop_new(self, expr, rhs, op);
+  }
+  return expr;
+}
+
+Expr* unary(Parser* self) {
+  assert(self);
+  const TokenType tt = peektype(self);
+  OperatorType op = Operator__Invalid;
+
+  if (tt == Token__Bang) {
+    op = Operator__Not;
+
+  } else if (tt == Token__Minus) {
+    op = Operator__Negate;
+  } else {
+    return primary(self);
+  }
+
+  expect_adv(self);
+  Expr* rhs = unary(self);
+
+  return pexpr_unaryop_new(self, rhs, op);
+}
+
+Expr* primary(Parser* self) {
+  const TokenType tt = peektype(self);
+  switch (tt) {
+    case Token__True: {
+      expect_adv(self);
+      return pexpr_bool_new(self, true);
+    } break;
+
+    case Token__False: {
+      expect_adv(self);
+      return pexpr_bool_new(self, false);
+
+    } break;
+
+    case Token__Int: {
+      expect_adv(self);
+      return pexpr_int_new(self, self->current.num_literal.integer);
+    } break;
+
+    case Token__Float: {
+      expect_adv(self);
+      return pexpr_float_new(self, self->current.num_literal.fp);
+    } break;
+
+    case Token__Rune: {
+      expect_adv(self);
+      const Rune r = runetab_add(self->current.lexeme);
+      return pexpr_rune_new(self, r);
+    } break;
+
+    case Token__String: {
+      expect_adv(self);
+      const Rune r = runetab_add(self->current.lexeme);
+      return pexpr_strlit_new(self, r);
+    } break;
+
+    case Token__OpenParen: {
+      expect_adv(self);
+      Expr* expr = expression(self);
+      if (peektype(self) == Token__CloseParen) {
+        expect_adv(self);
+        return expr;
+      } else {
+        log_fatal("Unexpected Token: %s", tokentype_string(peektype(self)));
+      }
+
+    } break;
+
+    case Token__Identifier: {
+      expect_adv(self);
+      const Rune r = runetab_add(self->current.lexeme);
+      return pexpr_ident_new(self, r);
+
+    } break;
+    default: {
+      log_fatal("Unexpected token: %s", tokentype_string(tt));
+    } break;
+  }
 }

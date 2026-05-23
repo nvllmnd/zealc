@@ -23,7 +23,8 @@ typedef enum ExprType {
   Expr__List,
   Expr__Assignment,
   Expr__Call,
-  Expr__Operator,
+  Expr__BinOp,
+  Expr__UnaryOp,
   Expr__PrintCall,
 } ExprType;
 
@@ -65,6 +66,7 @@ typedef enum ExprStmtType {
 } ExprStmtType;
 
 typedef enum OperatorType {
+  Operator__Invalid = -1,
   Operator__Plus,
   Operator__Minus,
   Operator__Mul,
@@ -75,7 +77,18 @@ typedef enum OperatorType {
   Operator__Or,
   Operator__BitOr,
   Operator__BitAnd,
+  Operator__Gt,
+  Operator__Gte,
+  Operator__Lt,
+  Operator__Lte,
+  Operator__Eq,
+  Operator__NotEq,
+  Operator__Not,
+  Operator__Negate,
 } OperatorType;
+
+CONST_FUNC
+OperatorType tokentype_optype(TokenType tt);
 
 typedef i64 StringId;
 typedef i64 RuneId;
@@ -89,6 +102,7 @@ typedef enum PrintType {
 } PrintType;
 
 
+/// Each root expression node lives on stack, which points to the rest of the AST
 struct Expr {
   union {
     bool b;
@@ -108,11 +122,16 @@ struct Expr {
       struct Expr* callee;
       Vec(struct Expr) args;
     } call;
-    struct OperatorExpr {
+    struct BinOpExpr {
       struct Expr* lhs;
       struct Expr* rhs;
       OperatorType optype;
-    } op;
+    } binop;
+
+    struct UnaryOpExpr {
+      struct Expr* rhs;
+      OperatorType optype;
+    } uop;
 
     /// Temporary until we get native function calls working so I dont lose my sanity
     struct PrintCall {
@@ -128,7 +147,8 @@ struct Expr {
 typedef struct Expr Expr;
 typedef struct AssignmentExpr AssignmentExpr;
 typedef struct CallExpr CallExpr;
-typedef struct OperatorExpr OperatorExpr;
+typedef struct BinOpExpr BinOpExpr;
+typedef struct UnaryOpExpr UnaryOpExpr;
 typedef struct PrintCall PrintCall;
 
 
@@ -225,7 +245,7 @@ PARAMS_NONNULL(1,2)
 static inline Expr expr_operator(Expr* lhs, Expr* rhs, OperatorType type) {
   assert(lhs);
   assert(rhs);
-  return (Expr){.type = Expr__Operator, .val.op = {.lhs = lhs, .rhs = rhs, .optype = type}};
+  return (Expr){.type = Expr__BinOp, .val.binop = {.lhs = lhs, .rhs = rhs, .optype = type}};
 }
 
 CONST_FUNC
