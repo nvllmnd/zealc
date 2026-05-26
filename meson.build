@@ -66,6 +66,9 @@ core_lib = static_library(
   'zcore',
   files(
     'src/core/runes.c',
+
+    'src/core/talloc.c',
+
   ),
   include_directories: inc,
   dependencies: dependencies,

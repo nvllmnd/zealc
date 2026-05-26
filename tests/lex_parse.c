@@ -1,10 +1,15 @@
+#include "ast/ast.h"
 #include "ast/lex.h"
+#include "ast/parser.h"
 #include "core/runes.h"
 #include "ast/token.h"
-#include "nv/core/log.h"
+#define LIBNV_DEBUG 1
+#include "nv.h"
 #include "unity.h"
 
-void setUp(void) {}
+void setUp(void) {
+  
+}
 
 void tearDown(void) {}
 
@@ -40,10 +45,25 @@ void lex_can_tokenize(void) {
   }
 }
 
+void parse_simple_ast(void) {
+  static constexpr const char INPUT[] = "let x = 50;\n let y = 100;\n {\n let z = 500;\n }\n println x;\n println y;\n println z;\n";
+  Arena* arena = arena_new(1024, KILOBYTES(16));
+  TEST_ASSERT_NOT_NULL(arena);
+   
+  Parser p = parser_new(arena);
+
+  Ast ast = parser_parse_ast(&p, INPUT, sizeof(INPUT));
+  TEST_ASSERT_NOT_NULL(ast.alloc);
+  TEST_ASSERT_NOT_NULL(ast.root);
+
+
+}
+
 i32 main(void) {
   UNITY_BEGIN();
 
   RUN_TEST(lex_can_tokenize);
+  RUN_TEST(parse_simple_ast);
 
   return UNITY_END();
 }

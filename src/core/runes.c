@@ -1,13 +1,11 @@
 #include "core/runes.h"
 
+
 #include <stdint.h>
 #include <string.h>
 
 #include "error.h"
-#include "nv/core.h"
-
-#include "nv/memory/alloc.h"
-#include "nv/memory/arena.h"
+#include "nv.h"
 
 typedef enum RuneType { Rune__Empty = 0, Rune__Used, Rune__TypeCount } RuneType;
 typedef struct RuneTable RuneTable;
@@ -412,7 +410,7 @@ CONST_FUNC
 TokenType kw_tokentype(Keyword kw) {
   assert(kw.type >= Keyword__True && kw.type < Keyword__Count);
 
-  static constexpr const TokenType KEYWORD_TOKENTYPE[] = {
+  static constexpr const TokenType KEYWORD_TOKENTYPE[Keyword__Count] = {
       [Keyword__True] = Token__True,
       [Keyword__False] = Token__False,
       [Keyword__If] = Token__If,
@@ -448,6 +446,8 @@ TokenType kw_tokentype(Keyword kw) {
       [Keyword__Dyn] = Token__Dyn,
       [Keyword__Default] = Token__Default,
       [Keyword__Sizeof] = Token__Sizeof,
+      [Keyword__Print] = Token__Print,
+      [Keyword__Println] = Token__Println,
   };
   return KEYWORD_TOKENTYPE[kw.type];
 }

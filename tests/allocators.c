@@ -2,18 +2,15 @@
 
 #include <string.h>
 
-#include "nv/core/constants.h"
-#include "nv/core_types.h"
-#include "nv/core/intdefs.h"
-#include "nv/core/log.h"
-#include "nv/memory/alloc.h"
-#include "nv/memory/arena.h"
+#include "nv.h"
+#include "talloc.h"
 #include "unity.h"
 
 static Arena* ALLOC = nullptr;
 
 void setUp(void) {
   ALLOC = arena_new(4, KILOBYTES(16));
+  assert(talloc_init((VirtMemOpts){.size_in_mb = 1024, .initial_commit = MEGABYTES(2)}) == MemError__Ok);
   // mi_option_set_enabled(mi_option_show_stats, true);
   // mi_option_set_enabled(mi_option_verbose, true);
   // mi_option_set_enabled(mi_option_show_errors, true);
@@ -21,9 +18,9 @@ void setUp(void) {
 
 void tearDown(void) {
   arena_destroy(ALLOC);
+  talloc_destroy();
   ALLOC = nullptr;
 }
-
 
 struct Stuff {
   char buf[255];
@@ -38,17 +35,13 @@ struct Stuff {
 alias(Stuff);
 
 void arena_heap_alignment_nofragment(void) {
+  Stuff* s = arena_zalloc(ALLOC, mlayout_new(Stuff));
+  TEST_ASSERT_NOT_NULL(s);
 
-
- Stuff* s = arena_zalloc(ALLOC, mlayout_new(Stuff));
- TEST_ASSERT_NOT_NULL(s);
-
- *s = make(Stuff, .buf = {}, .points = {}, .counter = 5);
-
+  *s = make(Stuff, .buf = {}, .points = {}, .counter = 5);
 }
 
 void arena_heap_can_grow_and_destroy(void) {
-
   for (i32 i = 0; i < 50; i++) {
     char* b1 = arena_zalloc(ALLOC, mlayout_bytes(1024));
     char* b2 = arena_zalloc(ALLOC, mlayout_bytes(2048));
@@ -59,24 +52,22 @@ void arena_heap_can_grow_and_destroy(void) {
     strncpy(b1, "ayooo", sizeof("ayooo"));
 
     TEST_ASSERT_EQUAL_STRING(b1, "ayooo");
-
-
   }
 
   const ArenaStats stats = arena_stats(ALLOC);
   println("TOTAL ALLOCATED IN BYTES : %li", stats.total_used);
-
 }
 
-
-
-
+void talloc_build_string(void) {
+  talloc_fspush_nosp();
+}
 
 i32 main(void) {
   UNITY_BEGIN();
 
   RUN_TEST(arena_heap_can_grow_and_destroy);
   RUN_TEST(arena_heap_alignment_nofragment);
+  RUN_TEST(talloc_build_string);
 
   return UNITY_END();
 }

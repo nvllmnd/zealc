@@ -11,7 +11,6 @@
 #include "nv/core/attributes.h"
 #include "nv/core_types.h"
 #include "nv/core/log.h"
-#include "nv/memory/cstr.h"
 
 // static constexpr const char INVALID_CHAR = cast(char, -125);
 // static constexpr const char LEXER_EOF_LITERAL = cast(char, -128);

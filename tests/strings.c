@@ -2,13 +2,9 @@
 
 #include "ast/token.h"
 #include "core/runes.h"
-#include "nv/core/constants.h"
-#include "nv/core/intdefs.h"
-#include "nv/core/sslice.h"
-#include "nv/core_types.h"
-#include "nv/memory/cstr.h"
+#include "nv.h"
+#include "nv/core/algo.h"
 #include "unity.h"
-#include "nv/core/log.h"
 
 void setUp(void) {
   const ZError err = runetab_init(KILOBYTES(1), 4);
@@ -17,11 +13,7 @@ void setUp(void) {
   }
 }
 
-void tearDown(void) {
-  runetab_destroy();
-
-
-}
+void tearDown(void) { runetab_destroy(); }
 
 struct KW {
   sslice name;
@@ -30,21 +22,20 @@ struct KW {
 alias(KW);
 
 static constexpr const KW KWS[] = {
-  make(KW, .name =sslice_static_new("if"), .type = Keyword__If ),
-         make(KW, .name = sslice_static_new("struct"), .type = Keyword__Struct),
+    make(KW, .name = sslice_static_new("if"), .type = Keyword__If),
+    make(KW, .name = sslice_static_new("struct"), .type = Keyword__Struct),
 
     make(KW, sslice_static_new("while"), Keyword__While),
 
-    make(KW,sslice_static_new("else"), Keyword__Else),
+    make(KW, sslice_static_new("else"), Keyword__Else),
 
-    make(KW, sslice_static_new("when"),Keyword__When),
+    make(KW, sslice_static_new("when"), Keyword__When),
 
     make(KW, sslice_static_new("trait"), Keyword__Trait),
 
     make(KW, sslice_static_new("const"), Keyword__Const),
 
     make(KW, sslice_static_new("let"), Keyword__Let),
-
 
     make(KW, sslice_static_new("fn"), Keyword__Fn),
 
@@ -73,7 +64,6 @@ void runetab_add_and_lookup(void) {
   const Rune b = runetab_lookup(VALUE);
   TEST_ASSERT_TRUE(rune_eq(a, b));
   TEST_ASSERT_EQUAL_PTR(b.name.begin, a.name.begin);
-
 }
 
 void move_memory_helpers(void) {
@@ -145,7 +135,10 @@ void keyword_lookup_table(void) {
       sslice_static_new("await"), sslice_static_new("comptime"), sslice_static_new("static"),
       sslice_static_new("mod"),   sslice_static_new("macro"),    sslice_static_new("derive"),
       sslice_static_new("dyn"),   sslice_static_new("default"),  sslice_static_new("sizeof"),
+
+      sslice_static_new("print"), sslice_static_new("println"),
   };
+
 
   for (i32 i = 0; i < Token__KeywordCount; i++) {
     const sslice sl = KEYWORDS[i];
@@ -162,28 +155,9 @@ void keyword_lookup_table(void) {
     TEST_ASSERT_EQUAL_STRING(kw_string(kw), sl.begin);
   }
 }
-
-void string_compare(void) {
-  static constexpr const char STR[] = "this is a test string!";
-  const cstr l = cstr_new(STR);
-  const cstr r = cstr_new(STR);
-
-  TEST_ASSERT_TRUE_MESSAGE(cstr_eq(&l, &r), "cstr_cmp between 2 strings that should be the same failed!");
-
-  const cstr diff = cstr_new("this is a different string!");
-
-  TEST_ASSERT_FALSE_MESSAGE(cstr_eq(&l, &diff), "Strings should be diff");
-
-  const sslice slice_this = sslice_from_range(cstr_as_ptr(&diff), 0, 4);
-  const sslice slice_that = sslice_from_range(cstr_as_ptr(&l), 0, 4);
-
-  TEST_ASSERT_TRUE_MESSAGE(sslice_eq(slice_this, slice_that), "slices should match");
-}
-
 i32 main(void) {
   UNITY_BEGIN();
 
-  RUN_TEST(string_compare);
   RUN_TEST(keyword_lookup_table);
   RUN_TEST(move_memory_helpers);
   RUN_TEST(runetab_keywords);

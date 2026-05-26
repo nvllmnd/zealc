@@ -2,9 +2,8 @@
 
 #include <assert.h>
 #include "nv/core/attributes.h"
-#include "nv/core/buffer.h"
+#include "nv/iter.h"
 #include "nv/core_types.h"
-#include "nv/memory/cstr.h"
 #include "runes.h"
 
 
@@ -18,8 +17,6 @@ typedef enum ExprType {
   Expr__String,
   Expr__Ident,
   Expr__Rune,
-  Expr__Pair,
-  Expr__Triple,
   Expr__List,
   Expr__Assignment,
   Expr__Call,
@@ -85,10 +82,18 @@ typedef enum OperatorType {
   Operator__NotEq,
   Operator__Not,
   Operator__Negate,
+  Operator__Count,
 } OperatorType;
 
 CONST_FUNC
 OperatorType tokentype_optype(TokenType tt);
+
+CONST_FUNC
+RETURNS_NON_NULL
+const char* optype_string(OperatorType op);
+
+CONST_FUNC
+sslice optype_slice(OperatorType op);
 
 typedef i64 StringId;
 typedef i64 RuneId;
@@ -157,11 +162,6 @@ typedef struct PrintCall PrintCall;
 typedef Vec(Expr) VecExpr;
 
 
-
-CONST_FUNC
-static inline bool expr_is_valid(Expr self) {
-  return self.type >= Expr__Unit;
-}
 
 CONST_FUNC
 static inline Expr expr_invalid(void) {
@@ -325,3 +325,5 @@ struct ExprStmt {
   };
 };
 typedef struct ExprStmt ExprStmt;
+
+

@@ -7,10 +7,11 @@
 #include "ast/lex.h"
 #include "ast/token.h"
 #include "nv/core/attributes.h"
-#include "nv/core/buffer.h"
 #include "nv/core/constants.h"
 #include "nv/core/log.h"
 #include "nv/core_types.h"
+#include "nv/iter.h"
+#include "nv/iter/vec.h"
 #include "nv/memory/arena.h"
 #include "runes.h"
 
@@ -335,6 +336,10 @@ RETURNS_NON_NULL
 static Expr* expression(Parser* lex);
 
 METHOD
+/// TODO: This should return a ExprStmt once we  have those ready to go
+static Expr statement(Parser* self);
+
+METHOD
 RETURNS_NON_NULL
 static Expr* assignment(Parser* lex);
 
@@ -345,7 +350,6 @@ static Expr* logical_bitwise(Parser* lex);
 METHOD
 RETURNS_NON_NULL
 static Expr* comparison(Parser* lex);
-
 
 RETURNS_NON_NULL
 METHOD
@@ -364,9 +368,7 @@ RETURNS_NON_NULL
 static Expr* primary(Parser* lex);
 
 [[maybe_unused]]
-METHOD
-RETURNS_NON_NULL
-static ExprStmt* block_expr_stmt(Parser* self);
+METHOD RETURNS_NON_NULL static ExprStmt* block_expr_stmt(Parser* self);
 
 Parser parser_new(Arena* alloc) {
   assert(alloc);
@@ -459,6 +461,13 @@ static inline bool match_any_(Parser* self, i32 count, ...) {
     }                                                                                                           \
   } while (0);
 
+#define expect_terminal(_p)                         \
+  do {                                              \
+    if (!match_any(_p, Token__Semicolon)) {         \
+      log_fatal("Expected ';' to end statements!"); \
+    }                                               \
+  } while (0);
+
 #define match_binop(_p, ...)        \
   ({                                \
     match(_p, __VA_ARGS__);         \
@@ -501,61 +510,14 @@ Ast parser_parse_ast(Parser* self, const char* str, i32 len) {
   });
 
   while (!parser_is_eof(self)) {
-    const ParseError perr = try_advance(self);
-    if (perr < ParseErr__Ok) {
-      parser_push_error(self, perr, LexError__Ok);
-      LOG("Parser encountered Error while advancing through source stream! %s", parse_error_string(perr));
-      return make_zeroed(Ast);
+
+    Expr expr = statement(self);
+
+    if (vec_is_full(exprs)) {
+      exprs = vec_resize(exprs, vec_len(exprs) * 2, arena_allocator(self->alloc));
     }
 
-    const Token* curr = &self->current;
-
-    Expr e = {};
-    switch (curr->type) {
-      // case Token__Eof:{} break;
-      case Token__Let: {
-        TODO();
-      } break;
-      case Token__Print: {
-        e = print_stmt(self, Print__Format);
-      } break;
-      case Token__Println: {
-        e = print_stmt(self, Print__Newline);
-      } break;
-      // case Token__If:
-      // case Token__When:
-      // case Token__Fn:
-      // case Token__Struct:
-      // case Token__Trait:
-      // case Token__Impl:
-      // case Token__Return:
-      case Token__Const: {
-        TODO();
-      } break;
-      // case Token__Loop:
-      // case Token__For:
-      // case Token__While:
-      // case Token__Match:
-      // case Token__Pub:
-      // case Token__Error:
-      // case Token__Enum:
-      // case Token__Type:
-      // case Token__Await:
-      // case Token__Comptime:
-      // case Token__Static:
-      // case Token__Mod:
-      // case Token__Macro:
-      // case Token__Derive:
-      // case Token__Sizeof:
-      default: {
-        TODO();
-      } break;
-        break;
-    }
-
-    // each root node is not a pointer type, so we dont
-    // have to have extra indirection with a Vec(Expr*)
-    vec_push(exprs, e);
+    vec_push(exprs, expr);
   }
 
   return make(Ast, .root = exprs, .alloc = self->alloc);
@@ -587,16 +549,13 @@ ParseError parser_preload(Parser* self) {
   return ParseErr__Ok;
 }
 
-static inline void check_expr(Expr e) {
-  if UNLIKELY (!expr_is_valid(e)) {
-    log_fatal("Parser encountered an invalid expression while trying to parse an expression or statement! Aboring!");
-  }
-}
+METHOD
+static Expr block_stmt(Parser* self);
 
 Expr print_stmt(Parser* self, PrintType type) {
   Expr* e = expression(self);
-
-  check_expr(*e);
+  expect_terminal(self);
+  advance(self);
 
   return expr_print_call(e, type);
 }
@@ -810,4 +769,97 @@ Expr* primary(Parser* self) {
       log_fatal("Unexpected token: %s", tokentype_string(tt));
     } break;
   }
+}
+
+Expr statement(Parser* self) {
+  // const Token* curr = &self->current;
+  LOG("Parsing: %.*s(%s)", RSSPREAD(self->current.lexeme), tokentype_string(peektype(self)));
+
+  Expr e = {};
+  switch (peektype(self)) {
+    // case Token__Eof:{} break;
+    case Token__Let: {
+      TODO();
+    } break;
+    case Token__Print: {
+        LOG("MAtched print");
+        expect_adv(self);
+      e = print_stmt(self, Print__Format);
+    } break;
+    case Token__Println: {
+
+        LOG("MAtched println");
+        expect_adv(self);
+      e = print_stmt(self, Print__Newline);
+    } break;
+    // case Token__If:
+    // case Token__When:
+    // case Token__Fn:
+    // case Token__Struct:
+    // case Token__Trait:
+    // case Token__Impl:
+    // case Token__Return:
+    case Token__Const: {
+      TODO();
+    } break;
+    // case Token__Loop:
+    // case Token__For:
+    // case Token__While:
+    // case Token__Match:
+    // case Token__Pub:
+    // case Token__Error:
+    // case Token__Enum:
+    // case Token__Type:
+    // case Token__Await:
+    // case Token__Comptime:
+    // case Token__Static:
+    // case Token__Mod:
+    // case Token__Macro:
+    // case Token__Derive:
+    // case Token__Sizeof:
+    default: {
+      e = block_stmt(self);
+    } break;
+      break;
+  }
+
+  // expect_terminal(self);
+  // advance(self);
+  return e;
+}
+
+static Expr block_stmt(Parser* self) {
+  assert(self);
+
+  const bool is_block = peektype(self) == Token__OpenBrace;
+
+  if (is_block) {
+    expect_adv(self);
+  }
+
+  Vec(Expr) stmts = vec_new(Expr, 24, arena_allocator(self->alloc));
+  while (!parser_is_eof(self)) {
+    if UNLIKELY (is_block && peektype(self) == Token__CloseBrace) {
+     expect_adv(self);
+     break; 
+    }
+
+    if UNLIKELY (vec_is_full(stmts)) {
+      stmts = vec_resize(stmts, vec_len(stmts) * 2, arena_allocator(self->alloc));
+      assert(stmts);
+    }
+
+    Expr e = statement(self);
+    vec_push(stmts, e);
+
+    // expect_adv(self);
+  }
+
+  if (peektype(self) == Token__CloseBrace) {
+    expect_adv(self);
+  }
+
+  // TODO: Make this an ExprStmt, or and Expr List depending on if this is a block statement or not
+  return expr_list(stmts);
+
 }
