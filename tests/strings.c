@@ -7,7 +7,7 @@
 #include "unity.h"
 
 void setUp(void) {
-  const ZError err = runetab_init(KILOBYTES(1), 4);
+  const ZError err = runetab_init(MEGABYTES(1), GIGABYTES(1));
   if (err != ZOK) {
     LOG("Failed to initialize RuneTable! ERR: %d", err);
   }
@@ -138,7 +138,6 @@ void keyword_lookup_table(void) {
 
       sslice_static_new("print"), sslice_static_new("println"),
   };
-
 
   for (i32 i = 0; i < Token__KeywordCount; i++) {
     const sslice sl = KEYWORDS[i];

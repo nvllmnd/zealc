@@ -67,7 +67,7 @@ core_lib = static_library(
   files(
     'src/core/runes.c',
 
-    'src/core/talloc.c',
+    'src/core/strpad.c',
 
   ),
   include_directories: inc,

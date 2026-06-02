@@ -6,11 +6,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/runes.h"
 #include "ast/token.h"
+#include "core/runes.h"
 #include "nv/core/attributes.h"
-#include "nv/core_types.h"
 #include "nv/core/log.h"
+#include "nv/core/sslice.h"
+#include "nv/core_types.h"
 
 // static constexpr const char INVALID_CHAR = cast(char, -125);
 // static constexpr const char LEXER_EOF_LITERAL = cast(char, -128);
@@ -68,7 +69,11 @@ METHOD
 PURE_FUNC
 static inline bool lexer_is_eof(const LexState* self) {
   const i32 i = self->cursor.i;
-  return i >= self->source.len || i < 0;
+  if (i < self->source.len && i >= 0) {
+    return self->source.begin[i] == 0;
+  } else {
+    return false;
+  }
 }
 
 METHOD
@@ -181,6 +186,11 @@ LexError lexer_next(LexState* self, Token* next_token) {
   char c = lexer_peekc(self);
 
   switch (c) {
+    case 0: {
+        next_token->type = Token__Eof;
+        next_token->lexeme = sslice_static_new("<<EOF>>");
+        return LexError__Ok;
+    } break;
     case Token__OpenBrace: {
       lexer_adv(self);
       return lexer_glyph(self, Token__OpenBrace, next_token);
@@ -429,6 +439,7 @@ LexError lexer_next(LexState* self, Token* next_token) {
     return lexer_integer(self, next_token);
   }
 
+  LOG_ERROR("LEX ERROR: UnexpectedCharacter: %c(%d)", c, c);
   return LexError__UnexpectedCharacter;
 }
 
@@ -925,7 +936,6 @@ static LexError lexer_string(LexState* self, Token* tok) {
   } else {
     return LexError__UnmatchedDoubleQuotString;
   }
-
 }
 
 bool tokentype_is_keyword(TokenType self) { return self > Token__KeywordsStart && self < Token__KeywordsEnd; }

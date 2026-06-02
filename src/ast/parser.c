@@ -13,7 +13,9 @@
 #include "nv/iter.h"
 #include "nv/iter/vec.h"
 #include "nv/memory/arena.h"
+#include "nv/memory/static_alloc.h"
 #include "runes.h"
+#include "strpad.h"
 
 const char* parse_error_string(ParseError e) {
   switch (e) {
@@ -84,6 +86,16 @@ METHOD
 static inline Expr* pexpr_bool_new(Parser* self, bool val) {
   Expr* e = pexpr_new(self);
   *e = expr_bool(val);
+  return e;
+}
+
+RETURNS_NON_NULL
+RETURNS_RESOURCE
+METHOD
+[[maybe_unused]]
+static inline Expr* pexpr_unit_new(Parser* self) {
+  Expr* e = pexpr_new(self);
+  *e = expr_unit();
   return e;
 }
 
@@ -327,6 +339,9 @@ METHOD
 static Expr print_stmt(Parser* self, PrintType type);
 
 METHOD
+static Expr define_stmt(Parser* self, DefineStmtType type);
+
+METHOD
 RETURNS_NON_NULL
 [[maybe_unused]]
 static ExprStmt* expression_stmt(Parser* self);
@@ -396,18 +411,6 @@ void parser_print_errors(const Parser* self) {
     }                                             \
   } while (0)
 
-// METHOD
-// static inline void advance_expect(Parser* self) {
-//   assert(self);
-
-//   if (!parser_is_eof(self)) {
-
-//   }
-//   const ParseError err = advance(self);
-//   if (err < ParseErr__Ok && ) {
-//   }
-
-// }
 
 PURE_FUNC
 METHOD
@@ -437,21 +440,6 @@ static inline bool match_any_(Parser* self, i32 count, ...) {
   return false;
 }
 #define match_any(_p, ...) (match_any_(_p, VA_ARGS_LEN(__VA_ARGS__), __VA_ARGS__))
-
-// METHOD
-// static inline void match_advance(Parser* self, TokenType tt) {
-//   assert(self);
-//   if (is_match(self, tt)) {
-//     const ParseError err = advance(self);
-//     if (!perror_is_ok(err)) {
-//       log_fatal("Parser matched token: %s correctly, but encountered an error when trying to advance forward",
-//                 tokentype_string(tt));
-//     }
-//     return;
-//   } else {
-//     log_fatal("Expected Token: %s, but got %s", tokentype_string(self->current.type), tokentype_string(tt));
-//   }
-// }
 
 #define match(_p, ...)                                                                                          \
   do {                                                                                                          \
@@ -503,15 +491,14 @@ Ast parser_parse_ast(Parser* self, const char* str, i32 len) {
   // prime the parser
   parser_preload(self);
 
-  Vec(Expr) exprs = ({
+  Vec(Expr*) exprs = ({
     const i32 cap = max(self->lex.source.len / 8, 24);
     const Allocator alloc = arena_allocator(self->alloc);
-    vec_new(Expr, cap, alloc);
+    vec_new(Expr*, cap, alloc);
   });
 
   while (!parser_is_eof(self)) {
-
-    Expr expr = statement(self);
+    Expr* expr = expression(self);
 
     if (vec_is_full(exprs)) {
       exprs = vec_resize(exprs, vec_len(exprs) * 2, arena_allocator(self->alloc));
@@ -675,9 +662,9 @@ Expr* factor(Parser* self) {
     const TokenType tt = peektype(self);
     OperatorType op = Operator__Invalid;
     if (tt == Token__ForwardSlash) {
-      op = Operator__Minus;
+      op = Operator__Div;
     } else if (tt == Token__Star) {
-      op = Operator__Plus;
+      op = Operator__Mul;
     } else {
       break;
     }
@@ -726,24 +713,28 @@ Expr* primary(Parser* self) {
     } break;
 
     case Token__Int: {
+      const i64 n = self->current.num_literal.integer;
       expect_adv(self);
-      return pexpr_int_new(self, self->current.num_literal.integer);
+      return pexpr_int_new(self, n);
     } break;
 
     case Token__Float: {
+      const f64 n = self->current.num_literal.fp;
       expect_adv(self);
-      return pexpr_float_new(self, self->current.num_literal.fp);
+      return pexpr_float_new(self, n);
     } break;
 
     case Token__Rune: {
+      const sslice sl = self->current.lexeme;
       expect_adv(self);
-      const Rune r = runetab_add(self->current.lexeme);
+      const Rune r = runetab_add(sl);
       return pexpr_rune_new(self, r);
     } break;
 
     case Token__String: {
+      const sslice sl = self->current.lexeme;
       expect_adv(self);
-      const Rune r = runetab_add(self->current.lexeme);
+      const Rune r = runetab_add(sl);
       return pexpr_strlit_new(self, r);
     } break;
 
@@ -760,8 +751,9 @@ Expr* primary(Parser* self) {
     } break;
 
     case Token__Identifier: {
+      const sslice sl = self->current.lexeme;
       expect_adv(self);
-      const Rune r = runetab_add(self->current.lexeme);
+      const Rune r = runetab_add(sl);
       return pexpr_ident_new(self, r);
 
     } break;
@@ -779,17 +771,17 @@ Expr statement(Parser* self) {
   switch (peektype(self)) {
     // case Token__Eof:{} break;
     case Token__Let: {
-      TODO();
+      expect_adv(self);
+      e = define_stmt(self, Define__Let);
     } break;
     case Token__Print: {
-        LOG("MAtched print");
-        expect_adv(self);
+      LOG("MAtched print");
+      expect_adv(self);
       e = print_stmt(self, Print__Format);
     } break;
     case Token__Println: {
-
-        LOG("MAtched println");
-        expect_adv(self);
+      LOG("MAtched println");
+      expect_adv(self);
       e = print_stmt(self, Print__Newline);
     } break;
     // case Token__If:
@@ -840,8 +832,8 @@ static Expr block_stmt(Parser* self) {
   Vec(Expr) stmts = vec_new(Expr, 24, arena_allocator(self->alloc));
   while (!parser_is_eof(self)) {
     if UNLIKELY (is_block && peektype(self) == Token__CloseBrace) {
-     expect_adv(self);
-     break; 
+      expect_adv(self);
+      break;
     }
 
     if UNLIKELY (vec_is_full(stmts)) {
@@ -861,5 +853,162 @@ static Expr block_stmt(Parser* self) {
 
   // TODO: Make this an ExprStmt, or and Expr List depending on if this is a block statement or not
   return expr_list(stmts);
+}
 
+static Expr define_stmt(Parser* self, DefineStmtType type) {
+  UNUSED(self);
+  UNUSED(type);
+  TODO();
+  // if (peektype(self) == Token__Identifier) {
+  //   Token name = self->current;
+  //   expect_adv(self);
+  //   Expr* initializer = nullptr;
+  //   if (peektype(self) == Token__Eq) {
+  //     expect_adv(self);
+  //     initializer = expression(self);
+  //   }
+  //   const sslice name_sl = name.lexeme;
+  //
+  //   if (is_null(initializer)) {
+  //     initializer = pexpr_unit_new(self);
+  //   }
+  // }
+}
+
+Expr* parser_parse_expr(Parser* self, const char* str, i32 len) {
+  assert(str);
+  assert(len > 0);
+  // clear lex state in case we just finished parsing something else
+  self->lex = make_zeroed(LexState);
+  // and errors!
+  self->errors = make_zeroed(ParseErrorList);
+
+  LOG("ABOUT TO PARSE: %*.s", len, str);
+
+  lexer_init_source(&self->lex, sslice_new(.begin = str, .len = len));
+
+  // prime the parser
+  parser_preload(self);
+
+  Expr* e = expression(self);
+
+  if (peektype(self) == Token__Semicolon) {
+    expect_adv(self);
+    return e;
+  }
+
+  return nullptr;
+}
+
+static void expression_string(Expr* expr);
+
+static void expression_string(Expr* expr) {
+  switch (expr->type) {
+    case Expr__Invalid: {
+      strpad_append("Invalid Expression!");
+    } break;
+    case Expr__Unit: {
+      LOG_DBG("Expr: Unit");
+      strpad_append("()");
+    } break;
+    case Expr__Bool: {
+      LOG_DBG("Expr: Bool");
+      strpad_fappend("%s", expr->val.b ? "true" : "false");
+    } break;
+    case Expr__Int: {
+      strpad_fappend("%lu", expr->val.i);
+
+      LOG_DBG("Expr: Int %lu", expr->val.i);
+    } break;
+    case Expr__Float: {
+      LOG_DBG("Expr: Float");
+      strpad_fappend("%f", expr->val.f);
+    } break;
+    case Expr__StringLiteral: {
+      LOG_DBG("Expr: \"StringLiteral\"");
+      strpad_fappend("\"%.*s\"", RSSPREAD(expr->val.rune.name));
+    } break;
+    case Expr__String: {
+      LOG_DBG("Expr: \"String\"");
+      strpad_fappend("\"%.*s\"", RSSPREAD(expr->val.rune.name));
+    } break;
+    case Expr__Ident: {
+      LOG_DBG("Expr: Ident");
+      strpad_fappend("%.*s", RSSPREAD(expr->val.rune.name));
+    } break;
+    case Expr__Rune: {
+      LOG_DBG("Expr: Rune");
+      strpad_fappend(":%.*s", RSSPREAD(expr->val.rune.name));
+    } break;
+    case Expr__List: {
+      LOG_DBG("Expr: List ");
+
+      strpad_append("(");
+      vec_foreach(expr->val.list) { expression_string(iter); }
+      strpad_append(" )");
+    } break;
+    case Expr__Assignment: {
+      LOG_DBG("Expr: Assignment");
+      strpad_append("(set ");
+      expression_string(expr->val.assign.lhs);
+      strpad_append(" ");
+      expression_string(expr->val.assign.rhs);
+      strpad_append(")");
+    } break;
+    case Expr__Call: {
+      LOG_DBG("Expr: Call");
+
+      strpad_append("(call ");
+      expression_string(expr->val.call.callee);
+      strpad_append(" [ ");
+      vec_foreach(expr->val.call.args) { expression_string(iter); }
+      strpad_append("]");
+    } break;
+    case Expr__BinOp: {
+      const sslice op = optype_slice(expr->val.binop.optype);
+
+      LOG_DBG("Expr: BinOp %.*s", RSSPREAD(op));
+      strpad_fappend("(%.*s ", RSSPREAD(op));
+      expression_string(expr->val.binop.lhs);
+      LOG_DBG("Parsed lhs");
+      strpad_append(" ");
+      expression_string(expr->val.binop.rhs);
+
+      LOG_DBG("Parsed rhs");
+      strpad_append(")");
+    } break;
+    case Expr__UnaryOp: {
+      const sslice op = optype_slice(expr->val.uop.optype);
+
+      LOG_DBG("Expr: UnaryOp %.*s", RSSPREAD(op));
+      strpad_fappend("(%.*s ", RSSPREAD(op));
+      expression_string(expr->val.uop.rhs);
+      strpad_append(")");
+    } break;
+
+    case Expr__PrintCall: {
+      LOG_DBG("Expr: PrintCall");
+
+      const char* op = expr->val.pc.type == Print__Newline ? "println" : "print";
+      strpad_fappend("(%s ", op);
+      expression_string(expr->val.uop.rhs);
+      strpad_append(")");
+    } break;
+      break;
+  }
+}
+
+void print_expression(Expr* expr) {
+  static Arena* a = nullptr;
+  if (is_null(a)) {
+    a = arena_new(MEGABYTES(4), KILOBYTES(16));
+  }
+  strpad_init(GIGABYTES(1));
+  strpad_start();
+
+  expression_string(expr);
+
+  const sslice sl = strpad_end(arena_allocator(a));
+
+  println("%d, %.*s", sl.len, RSSPREAD(sl));
 }

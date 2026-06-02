@@ -156,7 +156,7 @@ static inline bool rune_eq(Rune left, Rune right) {
 static constexpr const i32 RUNE_MAX_SIZE = INT16_MAX;
 
 RETURNS_ERROR
-ZError runetab_init(i32 entry_len, i32 name_storage_in_mb);
+ZError runetab_init(i32 entry_len, i32 storage_size);
 
 PURE_FUNC
 f32 runetab_load_factor(void);

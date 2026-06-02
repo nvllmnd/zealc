@@ -3,14 +3,12 @@
 #include <string.h>
 
 #include "nv.h"
-#include "talloc.h"
 #include "unity.h"
 
 static Arena* ALLOC = nullptr;
 
 void setUp(void) {
-  ALLOC = arena_new(4, KILOBYTES(16));
-  assert(talloc_init((VirtMemOpts){.size_in_mb = 1024, .initial_commit = MEGABYTES(2)}) == MemError__Ok);
+  ALLOC = arena_new(MEGABYTES(4), KILOBYTES(16));
   // mi_option_set_enabled(mi_option_show_stats, true);
   // mi_option_set_enabled(mi_option_verbose, true);
   // mi_option_set_enabled(mi_option_show_errors, true);
@@ -18,7 +16,6 @@ void setUp(void) {
 
 void tearDown(void) {
   arena_destroy(ALLOC);
-  talloc_destroy();
   ALLOC = nullptr;
 }
 
@@ -58,16 +55,11 @@ void arena_heap_can_grow_and_destroy(void) {
   println("TOTAL ALLOCATED IN BYTES : %li", stats.total_used);
 }
 
-void talloc_build_string(void) {
-  talloc_fspush_nosp();
-}
-
 i32 main(void) {
   UNITY_BEGIN();
 
   RUN_TEST(arena_heap_can_grow_and_destroy);
   RUN_TEST(arena_heap_alignment_nofragment);
-  RUN_TEST(talloc_build_string);
 
   return UNITY_END();
 }

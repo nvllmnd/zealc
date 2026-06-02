@@ -1,6 +1,5 @@
 #include "core/runes.h"
 
-
 #include <stdint.h>
 #include <string.h>
 
@@ -42,21 +41,21 @@ static Allocator RT_ARENA = {};
 
 static constexpr const i32 RT_ARENA_INIT_CAPACITY = KILOBYTES(8);
 
-ZError runetab_init(i32 entry_len, i32 name_storage_in_mb) {
+ZError runetab_init(i32 entry_len, i32 storage_size) {
   assert(entry_len > 0);
-  assert(name_storage_in_mb > 2);
+  assert(storage_size > 0);
 
   // we are already initialized if we have a non-null pointer to an Arena already
-  // this funciton is the only place where there is a call to [arena_new], so if we have a non-null pointer to an [Arena], we had to have
-  // already called this function before
+  // this funciton is the only place where there is a call to [arena_new], so if we have a non-null pointer to an
+  // [Arena], we had to have already called this function before
   if UNLIKELY (is_not_null(RT.alloc)) {
     return ZOK;
   }
 
-  Arena* arena = arena_new(name_storage_in_mb, RT_ARENA_INIT_CAPACITY);
+  Arena* arena = arena_new(storage_size, RT_ARENA_INIT_CAPACITY);
   if UNLIKELY (is_null(arena)) {
-    LOG_DBG(FILE_FMT " :: Failed to create new Arena of size %dMB and init capacity: %d",
-            FILE_FMT_ARGS(RuneTable, name_storage_in_mb, KILOBYTES(1)));
+    LOG_DBG(FILE_FMT " :: Failed to create new Arena of size %d bytes and init capacity: %d",
+            FILE_FMT_ARGS(RuneTable, storage_size, RT_ARENA_INIT_CAPACITY));
     return ZError__FailedNewOrInitArenaAlloc;
   }
 
@@ -79,11 +78,8 @@ ZError runetab_init(i32 entry_len, i32 name_storage_in_mb) {
 
   vec_grow_to_cap(RT.entries);
 
-
   return ZOK;
 }
-
-
 
 i32 runetab_grow(i32 new_entry_len) {
   assert(allocator_is_ok(RT_ARENA));
@@ -98,7 +94,6 @@ i32 runetab_grow(i32 new_entry_len) {
   }
 
   Vec(RuneEntry) const old_entries = RT.entries;
-
 
   const f64 next_load_factor = load_factor(new_entry_len, RT.entries_count);
   // make sure next load factor is large enough, otherwise this resize is pretty useless!
@@ -172,7 +167,6 @@ Rune runetab_add(sslice name) {
 
   const i32 index = cast(i32, hash & mask);
 
-
   for (i32 i = index, count = 0; count < len; i++, count++) {
     RuneEntry* entry = &RT.entries[i];
 
@@ -208,17 +202,15 @@ bool runetab_has_str(const char* string, i32 string_len) {
   const sslice name = sslice_new(.begin = string, .len = string_len);
   const Rune rune = runetab_lookup(name);
   return !rune_is_none(rune);
-
 }
 
-
 bool runetab_get(sslice name, Rune* out) {
-  assert(name.begin);  
+  assert(name.begin);
   assert(name.len > 0);
 
   const Rune entry = runetab_lookup(name);
   if (!rune_is_ok(entry)) {
-    return false; 
+    return false;
   }
 
   // we found a value entry for this name, but out param is null, we are done, signal to caller
@@ -229,7 +221,6 @@ bool runetab_get(sslice name, Rune* out) {
 
   *out = entry;
   return true;
-
 }
 
 Rune runetab_lookup(sslice name) {

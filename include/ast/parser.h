@@ -93,6 +93,8 @@ alias(Parser);
 METHOD
 Ast parser_parse_ast(Parser* self, const char* str, i32 len);
 
+Expr* parser_parse_expr(Parser* self, const char* str, i32 len);
+
 CONST_FUNC
 const char* parse_error_string(ParseError e);
 
@@ -111,3 +113,6 @@ Parser parser_new(struct Arena* alloc);
 
 METHOD
 void parser_print_errors(const Parser* self);
+
+void print_expression(Expr* e);
+
