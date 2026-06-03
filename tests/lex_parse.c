@@ -58,24 +58,23 @@ void lex_can_tokenize(void) {
 void parse_simple_ast(void) {
   // static constexpr const char INPUT[] =
   // "let x = 50;\n let y = 100;\n {\n let z = 500;\n }\n println x;\n println y;\n println z;\n";
-  static constexpr const char INPUT[] = "5 + (5 * 10) - (600 + 200);";
+  static constexpr const char INPUT[] = "let x = 5 + (5 * 10) - (600 + 200);\nprintln x;\n\n";
   Arena* arena = arena_new(MEGABYTES(128), KILOBYTES(16));
   TEST_ASSERT_NOT_NULL(arena);
 
   Parser p = parser_new(arena);
 
-  // Ast ast = parser_parse_ast(&p, INPUT, sizeof(INPUT));
+  Ast ast = parser_parse_ast(&p, INPUT, sizeof(INPUT));
 
-  // TEST_ASSERT_NOT_NULL(ast.alloc);
-  // TEST_ASSERT_NOT_NULL(ast.root);
+  TEST_ASSERT_NOT_NULL(ast.alloc);
+  TEST_ASSERT_NOT_NULL(ast.root);
 
-  // const sslice sl = ast_stringify(&ast);
+  const sslice sl = ast_stringify(&ast);
 
-  // TEST_ASSERT_NOT_NULL(sl.begin);
+  TEST_ASSERT_NOT_NULL(sl.begin);
 
-  Expr* e = parser_parse_expr(&p, &INPUT[0], sizeof(INPUT));
-  print_expression(e);
-  TEST_ASSERT_NOT_NULL(e);
+  // ExprStmt e = parser_parse_expr_stmt(&p, &INPUT[0], sizeof(INPUT));
+  // print_statement(&e);
 }
 
 i32 main(void) {

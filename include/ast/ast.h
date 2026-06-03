@@ -24,7 +24,7 @@ struct Ast {
   /// not writing it as Vec(Expr) to avoid having to include buffer.h in this header
   /// TODO: Change this from [Expr] to [ExprStmt] after we have verified we can parse expressions
   /// and simple print/println/let/const/var/ statements
-  struct Expr** root;
+  struct ExprStmt* root;
   /// Arena that owns memory where our AST nodes live.
   /// we track this in this struct in case we need to merge with other ASTs(when i have that built out) or allocate
   /// strings and other such mess

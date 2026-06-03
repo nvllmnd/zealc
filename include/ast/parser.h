@@ -19,6 +19,7 @@ typedef enum ParseError : error {
   ParseErr__UnexpectedEof,
   ParseErr__Unknown,
   ParseErr__SourceStreamTooShort,
+  ParseErr__ExpectedIdentifier,
   PARSE_ERROR_MAX_LIMIT,
   ParseErr__Ok = ZOK,
   ParseErr__EndOfSourceStream,
@@ -114,5 +115,16 @@ Parser parser_new(struct Arena* alloc);
 METHOD
 void parser_print_errors(const Parser* self);
 
-void print_expression(Expr* e);
+METHOD
+sslice expression_string(const Expr* expr, Allocator alloc);
+METHOD
+sslice statement_string(const ExprStmt* expr, Allocator alloc);
 
+METHOD
+void print_expression(const Expr* e);
+
+METHOD
+void print_statement(const ExprStmt* e);
+
+METHOD
+ExprStmt parser_parse_expr_stmt(Parser* self, const char* str, i32 len);

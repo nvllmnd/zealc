@@ -40,6 +40,9 @@ static RuneTable RT = {};
 static Allocator RT_ARENA = {};
 
 static constexpr const i32 RT_ARENA_INIT_CAPACITY = KILOBYTES(8);
+static constexpr const i32 RUNETAB_DEFAULT_CAP = GIGABYTES(1);
+
+static inline bool isinit(const RuneTable* self) { return self && is_not_null(self->alloc); }
 
 ZError runetab_init(i32 entry_len, i32 storage_size) {
   assert(entry_len > 0);
@@ -82,6 +85,12 @@ ZError runetab_init(i32 entry_len, i32 storage_size) {
 }
 
 i32 runetab_grow(i32 new_entry_len) {
+  if UNLIKELY (!isinit(&RT)) {
+    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != OK) {
+      LOG_FATAL("Failed to init Runetable!");
+    }
+  }
+
   assert(allocator_is_ok(RT_ARENA));
   assert(RT.entries);
   assert(new_entry_len > 0);
@@ -119,11 +128,22 @@ i32 runetab_grow(i32 new_entry_len) {
 }
 
 f32 runetab_load_factor(void) {
+  if UNLIKELY (!isinit(&RT)) {
+    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != OK) {
+      LOG_FATAL("Failed to init Runetable!");
+    }
+  }
   assert(RT.entries);
+
   return load_factor(vec_len(RT.entries), RT.entries_count);
 }
 
 Rune runetab_add(sslice name) {
+  if UNLIKELY (!isinit(&RT)) {
+    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != OK) {
+      LOG_FATAL("Failed to init Runetable!");
+    }
+  }
   assert(allocator_is_ok(RT_ARENA));
   assert(name.begin);
   assert(name.len > 0);
@@ -199,6 +219,14 @@ bool runetab_has(Rune rune) { return runetab_has_str(rune.name.begin, rune.name.
 bool runetab_has_str(const char* string, i32 string_len) {
   assert(string);
   assert(string_len > 0);
+
+  if UNLIKELY (!isinit(&RT)) {
+    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != OK) {
+      LOG_FATAL("Failed to init Runetable!");
+    }
+    return false;
+  }
+
   const sslice name = sslice_new(.begin = string, .len = string_len);
   const Rune rune = runetab_lookup(name);
   return !rune_is_none(rune);
@@ -207,6 +235,13 @@ bool runetab_has_str(const char* string, i32 string_len) {
 bool runetab_get(sslice name, Rune* out) {
   assert(name.begin);
   assert(name.len > 0);
+
+  if UNLIKELY (!isinit(&RT)) {
+    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != OK) {
+      LOG_FATAL("Failed to init Runetable!");
+    }
+    return false;
+  }
 
   const Rune entry = runetab_lookup(name);
   if (!rune_is_ok(entry)) {
@@ -224,6 +259,13 @@ bool runetab_get(sslice name, Rune* out) {
 }
 
 Rune runetab_lookup(sslice name) {
+  if UNLIKELY (!isinit(&RT)) {
+    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != OK) {
+      LOG_FATAL("Failed to init Runetable!");
+    }
+    return RUNE_NONE;
+  }
+
   assert(RT.entries);
   assert(name.begin);
   assert(name.len > 0);
@@ -325,6 +367,13 @@ void runetab_rehash_entries(RuneTable* self, const Vec(RuneEntry) old_entries) {
 }
 
 void runetab_clear(void) {
+  if UNLIKELY (!isinit(&RT)) {
+    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != OK) {
+      LOG_FATAL("Failed to init Runetable!");
+    }
+    return;
+  }
+
   assert(allocator_is_ok(RT_ARENA));
   arena_clear(RT.alloc);
 
@@ -332,6 +381,12 @@ void runetab_clear(void) {
 }
 
 void runetab_print_entries(void) {
+  if UNLIKELY (!isinit(&RT)) {
+    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != OK) {
+      LOG_FATAL("Failed to init Runetable!");
+    }
+    return;
+  }
   println("====== Printing RuneTable Entries: ======");
   vec_for(RT.entries) {
     const RuneEntry entry = RT.entries[i];
@@ -404,6 +459,7 @@ TokenType kw_tokentype(Keyword kw) {
   static constexpr const TokenType KEYWORD_TOKENTYPE[Keyword__Count] = {
       [Keyword__True] = Token__True,
       [Keyword__False] = Token__False,
+      [Keyword__Let] = Token__Let,
       [Keyword__If] = Token__If,
       [Keyword__Else] = Token__Else,
       [Keyword__Mut] = Token__Mut,

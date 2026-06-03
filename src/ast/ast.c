@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "ast/expr.h"
+#include "ast/parser.h"
 #include "nv/core.h"
 #include "nv/iter.h"
 #include "nv/iter/string.h"
@@ -65,7 +66,7 @@ static AstWalkError stringify_expr(Expr* expr, void*) {
     } break;
     case Expr__List: {
       const i32 llen = vec_len(expr->val.list);
-      strpad_putchar('[');
+      strpad_append("[");
 
       vec_for(expr->val.list) {
         tryerr(stringify_expr(&expr->val.list[i], nullptr));
@@ -75,7 +76,7 @@ static AstWalkError stringify_expr(Expr* expr, void*) {
         }
       }
 
-      strpad_putchar(']');
+      strpad_append("]");
       return AstError__Ok;
 
     } break;
@@ -84,11 +85,11 @@ static AstWalkError stringify_expr(Expr* expr, void*) {
 
       tryerr(stringify_expr(expr->val.assign.lhs, nullptr));
 
-      strpad_putchar(' ');
+      strpad_append(" ");
 
       tryerr(stringify_expr(expr->val.assign.rhs, nullptr));
 
-      strpad_putchar(')');
+      strpad_append(")");
 
       return AstError__Ok;
 
@@ -96,61 +97,117 @@ static AstWalkError stringify_expr(Expr* expr, void*) {
     case Expr__Call: {
       strpad_append("(call ");
       tryerr(stringify_expr(expr->val.call.callee, nullptr));
-      strpad_putchar(' ');
+      strpad_append(" ");
       tryerr(stringify_expr(expr->val.call.args, nullptr));
-      strpad_putchar(')');
+      strpad_append(")");
       return AstError__Ok;
 
     } break;
     case Expr__BinOp: {
       strpad_fappend("(%s", optype_string(expr->val.binop.optype));
+
       tryerr(stringify_expr(expr->val.binop.lhs, nullptr));
-      strpad_putchar(' ');
+      strpad_append(" ");
       tryerr(stringify_expr(expr->val.binop.rhs, nullptr));
-      strpad_putchar(')');
+      strpad_append(")");
       return AstError__Ok;
 
     } break;
     case Expr__UnaryOp: {
       strpad_fappend("(%s", optype_string(expr->val.binop.optype));
       tryerr(stringify_expr(expr->val.uop.rhs, nullptr));
-      strpad_putchar(')');
+      strpad_append(")");
       return AstError__Ok;
 
     } break;
     case Expr__PrintCall: {
       strpad_fappend("(%s", expr->val.pc.type == Print__Newline ? "println" : "print");
       tryerr(stringify_expr(expr->val.pc.rhs, nullptr));
-      strpad_putchar(')');
-      return AstError__Ok;
+      strpad_append(")");
 
+      return AstError__Ok;
     } break;
       break;
   }
 }
 
 PARAMS_NONNULL(1)
-static AstWalkError stringify_expr_stmt(ExprStmt* expr_stmt, void* ctx) {
-  UNUSED(expr_stmt);
-  UNUSED(ctx);
-  TODO();
+static AstWalkError stringify_expr_stmt(ExprStmt* es, void*) {
+  assert(es);
+
+  switch (es->type) {
+    case ExprStmt__Block: {
+      strpad_append("(begin \n");
+      if (is_null(es->block)) {
+        LOG_FATAL("WHAT");
+      }
+      vec_foreach(es->block) { tryerr(stringify_expr_stmt(iter, nullptr)); }
+      strpad_append("\n end)");
+    } break;
+    case ExprStmt__Loop: {
+    } break;
+    case ExprStmt__While: {
+    } break;
+    case ExprStmt__When: {
+    } break;
+    case ExprStmt__LetDefine: {
+      strpad_fappend("(let %.*s ", RSSPREAD(es->def.name.name));
+      tryerr(stringify_expr(es->def.rhs, nullptr));
+      strpad_append(")");
+    } break;
+    case ExprStmt__ConstDefine: {
+    } break;
+      strpad_fappend("(const %.*s ", RSSPREAD(es->def.name.name));
+      tryerr(stringify_expr(es->def.rhs, nullptr));
+      strpad_append(")");
+    case ExprStmt__VarDefine: {
+      strpad_fappend("(var %.*s ", RSSPREAD(es->def.name.name));
+      tryerr(stringify_expr(es->def.rhs, nullptr));
+      strpad_append(")");
+    } break;
+    case ExprStmt__FuncDefine: {
+    } break;
+
+    case ExprStmt__Return: {
+    } break;
+    case ExprStmt__Continue: {
+    } break;
+    case ExprStmt__Break: {
+    } break;
+    case ExprStmt__AtomExpr: {
+      tryerr(stringify_expr(&es->expr, nullptr));
+    } break;
+    case ExprStmt__Statement: {
+      TODO();
+    } break;
+      break;
+    case ExprStmt__None: {
+        LOG_FATAL("EMTPY EXPR STATEMENT");
+      } break;
+      break;
+  }
+  return OK;
 }
 
 void ast_walk(Ast* self) {
   assert(self);
+  assert(self->root);
   assert(self->walker.walk_expr);
   assert(self->walker.walk_expr_stmt);
 
-  vec_foreach(self->root) { self->walker.walk_expr(*iter, self->walker.userdata); }
+  LOG_DBG("WALKING AST");
+  vec_foreach(self->root) {
+    self->walker.walk_expr_stmt(iter, self->walker.userdata);
+  }
 }
 
 sslice ast_stringify(Ast* self) {
   assert(self);
   assert(self->root);
-  // const i32 len = vec_len(self->root);
-  //
+  LOG("AST_STRINGIFY");
 
   strpad_start();
+  LOG("STRPAD_START");
 
   ast_walker_init(self, nullptr, stringify_expr, stringify_expr_stmt);
   ast_walk(self);
