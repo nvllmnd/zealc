@@ -1,0 +1,57 @@
+%{
+	#include "ast/token.h"
+	#include "core/runes.h"
+	#include <assert.h>
+%}
+struct Keyword { i32 id; KeywordType type; }
+%%
+true, Keyword__True,
+false, Keyword__False,
+let, Keyword__Let,
+if, Keyword__If,
+else, Keyword__Else,
+mut, Keyword__Mut,
+when, Keyword__When,
+fn, Keyword__Fn,
+struct, Keyword__Struct,
+trait, Keyword__Trait,
+and, Keyword__And,
+or, Keyword__Or,
+impl, Keyword__Impl,
+return, Keyword__Return,
+self, Keyword__Self,
+const, Keyword__Const,
+loop, Keyword__Loop,
+for, Keyword__For,
+while, Keyword__While,
+continue, Keyword__Continue,
+break, Keyword__Break,
+match, Keyword__Match,
+pub, Keyword__Pub,
+ref, Keyword__Ref,
+error, Keyword__Error,
+enum, Keyword__Enum,
+type, Keyword__Type,
+await, Keyword__Await,
+comptime, Keyword__Comptime,
+static, Keyword__Static,
+mod, Keyword__Mod,
+macro, Keyword__Macro,
+derive, Keyword__Derive,
+dyn, Keyword__Dyn,
+default, Keyword__Default,
+sizeof, Keyword__Sizeof,
+print, Keyword__Print,
+println, Keyword__Println,
+%%
+
+const char* kw_string(const Keyword* self) {
+	const i32 i = self->id;
+	static constexpr const i32 POOLSIZE = (i32)sizeof(struct stringpool_t);
+	assert(i >= 0 && i <= POOLSIZE);
+	#if defined(NDEBUG)
+	(void)POOLSIZE;
+	#endif
+
+	return (stringpool + i);
+}

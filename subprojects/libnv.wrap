@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://github.com/nvllmnd/libnv.git
+revision = develop
+depth = 1
