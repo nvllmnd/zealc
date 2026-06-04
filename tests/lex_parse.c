@@ -56,10 +56,11 @@ void lex_can_tokenize(void) {
 
 
 void parse_simple_ast(void) {
-  // static constexpr const char INPUT[] =
-  // "let x = 50;\n let y = 100;\n {\n let z = 500;\n }\n println x;\n println y;\n println z;\n";
+
   static constexpr const char INPUT[] = "let x = 5 + (5 * 10) - (600 + 200);\nprintln x;\n\n";
+
   Arena* arena = arena_new(MEGABYTES(128), KILOBYTES(16));
+
   TEST_ASSERT_NOT_NULL(arena);
 
   Parser p = parser_new(arena);
@@ -74,8 +75,9 @@ void parse_simple_ast(void) {
 
   TEST_ASSERT_NOT_NULL(sl.begin);
 
-  // ExprStmt e = parser_parse_expr_stmt(&p, &INPUT[0], sizeof(INPUT));
-  // print_statement(&e);
+  TEST_ASSERT_EQUAL_STRING("(let x (- (+ 5 (* 5 10)) (+ 600 200)))\n(println x)\n", sl.begin);
+  println("%.*s", RSSPREAD(sl));
+
 }
 
 i32 main(void) {

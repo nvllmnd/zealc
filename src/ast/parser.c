@@ -485,11 +485,7 @@ Ast parser_parse_ast(Parser* self, const char* str, i32 len) {
   // prime the parser
   parser_preload(self);
 
-  Vec(ExprStmt) exprs = ({
-    const i32 cap = max(self->lex.source.len / 8, 24);
-    Allocator alloc = arena_allocator(self->alloc);
-    vec_new(ExprStmt, cap, alloc);
-  });
+  Vec(ExprStmt) exprs = vec_new(ExprStmt, len / 4, arena_allocator(self->alloc));
 
   while (!parser_is_eof(self)) {
     ExprStmt expr = statement(self);
@@ -499,20 +495,11 @@ Ast parser_parse_ast(Parser* self, const char* str, i32 len) {
       exprs = vec_resize(exprs, vec_len(exprs) * 2, arena_allocator(self->alloc));
     }
 
-    ExprStmt* e = vec_append(exprs);
-    assert(is_not_null(e));
-    memcpy(e, &expr, sizeof(ExprStmt));
-    LOG_DBG("Len after append: %d", vec_len(exprs));
-    for (i32 i = 0; i < vec_len(exprs); i++) {
-      LOG_DBG(" AFTER APPEND LOOP: e: %.*s, expr: %.*s, iter: %.*s",
-              RSSPREAD(expr_stmt_type_slice(e->type)),
-              RSSPREAD(expr_stmt_type_slice(expr.type)),
-              RSSPREAD(expr_stmt_type_slice(vec_index(exprs, i)->type))); }
+    vec_push(exprs, expr);
 
-    // vec_push(exprs, expr);
   }
 
-  return make(Ast, .root = exprs, .alloc = self->alloc);
+  return (Ast) {.root = exprs, .alloc = self->alloc };
 }
 
 ParseError parser_preload(Parser* self) {
@@ -767,12 +754,12 @@ Expr* primary(Parser* self) {
 }
 
 ExprStmt statement(Parser* self) {
-  // const Token* curr = &self->current;
-  LOG("Parsing: %.*s(%s)", RSSPREAD(self->current.lexeme), tokentype_string(peektype(self)));
 
   ExprStmt es = {};
   switch (peektype(self)) {
-    // case Token__Eof:{} break;
+    case Token__Eof:{
+        
+      } break;
     case Token__Let: {
       expect_adv(self);
       es = define_stmt(self, Define__Let);
@@ -992,6 +979,10 @@ static void statement_string_impl(const ExprStmt* es) {
       LOG_FATAL("NONE EXPR STATEMENT");
     } break;
       break;
+    case ExprStmt__AstChunkEnd: {
+        strpad_append("=== AST END ===");
+      } break;
+      break;
   }
 }
 
@@ -1084,7 +1075,8 @@ void expression_string_impl(const Expr* expr) {
 
       const char* op = expr->val.pc.type == Print__Newline ? "println" : "print";
       strpad_fappend("(%s ", op);
-      expression_string_impl(expr->val.uop.rhs);
+      assert(expr->val.pc.rhs);
+      expression_string_impl(expr->val.pc.rhs);
       strpad_append(")");
     } break;
       break;

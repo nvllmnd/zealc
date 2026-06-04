@@ -117,13 +117,12 @@ sslice strpad_end(Allocator alloc) {
   if UNLIKELY (!isinit(&SPAD)) {
     strpad_init(STRPAD_DEFAULT_SIZE);
 
-    LOG_DBG("strpad_end called without previous call to strpad_star");
+    // LOG_DBG("strpad_end called without previous call to strpad_star");
     return sslice_empty();
   }
 
   if UNLIKELY (!SPAD.active) {
-    LOG_DBG("strpad_end called without previous call to strpad_star");
-    return sslice_empty();
+    LOG_FATAL("strpad_end called without previous call to strpad_start");
   }
 
   const sslice sl = spad_clone_string(&SPAD.sp, alloc);

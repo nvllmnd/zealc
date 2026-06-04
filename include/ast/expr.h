@@ -59,6 +59,11 @@ typedef enum ExprStmtType {
   /// This is different from an [ExprStmt__AtomExpr] to differentiate between true top-level statements and any other
   /// situation where an ExprStmt could reduce to an Expr
   ExprStmt__Statement,
+
+  /// @brief when parser encounters a Token__Eof, this variant is returned to signal to the caller
+  /// the AST has reached the end of a chunk.
+  /// @details This wont happen every time, but when it does it could be helpful to more clearly signify parsing has finished for a given source stream
+  ExprStmt__AstChunkEnd,
 } ExprStmtType;
 
 typedef enum OperatorType {

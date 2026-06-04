@@ -205,5 +205,9 @@ sslice expr_stmt_type_slice(ExprStmtType t) {
         return sslice_static_new("ExprStmt(Statement)");
       } break;
       break;
+      case ExprStmt__AstChunkEnd: {
+          return sslice_static_new("Expr(AstEnd)");
+        } break;
+        break;
   }
 }
