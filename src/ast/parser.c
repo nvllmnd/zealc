@@ -11,6 +11,7 @@
 #include "nv/core/log.h"
 #include "nv/core_types.h"
 #include "nv/iter.h"
+#include "nv/iter/buff.h"
 #include "nv/iter/vec.h"
 #include "nv/memory/arena.h"
 #include "nv/memory/static_alloc.h"
@@ -343,15 +344,9 @@ static ExprStmt define_stmt(Parser* self, DefineStmtType type);
 
 METHOD
 RETURNS_NON_NULL
-[[maybe_unused]]
-static ExprStmt* expression_stmt(Parser* self);
-
-METHOD
-RETURNS_NON_NULL
 static Expr* expression(Parser* lex);
 
 METHOD
-/// TODO: This should return a ExprStmt once we  have those ready to go
 static ExprStmt statement(Parser* self);
 
 METHOD
@@ -492,19 +487,31 @@ Ast parser_parse_ast(Parser* self, const char* str, i32 len) {
 
   Vec(ExprStmt) exprs = ({
     const i32 cap = max(self->lex.source.len / 8, 24);
-    const Allocator alloc = arena_allocator(self->alloc);
+    Allocator alloc = arena_allocator(self->alloc);
     vec_new(ExprStmt, cap, alloc);
   });
 
   while (!parser_is_eof(self)) {
     ExprStmt expr = statement(self);
+    assert(expr.type != ExprStmt__None);
 
     if (vec_is_full(exprs)) {
       exprs = vec_resize(exprs, vec_len(exprs) * 2, arena_allocator(self->alloc));
     }
 
-    vec_push(exprs, expr);
+    ExprStmt* e = vec_append(exprs);
+    assert(is_not_null(e));
+    memcpy(e, &expr, sizeof(ExprStmt));
+    LOG_DBG("Len after append: %d", vec_len(exprs));
+    for (i32 i = 0; i < vec_len(exprs); i++) {
+      LOG_DBG(" AFTER APPEND LOOP: e: %.*s, expr: %.*s, iter: %.*s",
+              RSSPREAD(expr_stmt_type_slice(e->type)),
+              RSSPREAD(expr_stmt_type_slice(expr.type)),
+              RSSPREAD(expr_stmt_type_slice(vec_index(exprs, i)->type))); }
+
+    // vec_push(exprs, expr);
   }
+
   return make(Ast, .root = exprs, .alloc = self->alloc);
 }
 
@@ -771,12 +778,10 @@ ExprStmt statement(Parser* self) {
       es = define_stmt(self, Define__Let);
     } break;
     case Token__Print: {
-      LOG("MAtched print");
       expect_adv(self);
       es = print_stmt(self, Print__Format);
     } break;
     case Token__Println: {
-      LOG("MAtched println");
       expect_adv(self);
       es = print_stmt(self, Print__Newline);
     } break;
@@ -816,6 +821,8 @@ ExprStmt statement(Parser* self) {
       break;
   }
 
+  assert(es.type != ExprStmt__None);
+
   if (peektype(self) == Token__Semicolon) {
     expect_adv(self);
   } else {
@@ -829,7 +836,6 @@ ExprStmt statement(Parser* self) {
 
 static ExprStmt block_stmt(Parser* self) {
   assert(self);
-
 
   Vec(ExprStmt) stmts = vec_new(ExprStmt, 24, arena_allocator(self->alloc));
   while (!parser_is_eof(self)) {
@@ -983,8 +989,8 @@ static void statement_string_impl(const ExprStmt* es) {
     } break;
       break;
     case ExprStmt__None: {
-        LOG_FATAL("NONE EXPR STATEMENT");
-      } break;
+      LOG_FATAL("NONE EXPR STATEMENT");
+    } break;
       break;
   }
 }

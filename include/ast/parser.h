@@ -37,7 +37,6 @@ struct ParseErrorInfo {
   Token curr;
 };
 alias(ParseErrorInfo);
-
 static constexpr const i32 MAX_PARSE_ERRORS = 8;
 
 struct ParseErrorList {
@@ -94,6 +93,7 @@ alias(Parser);
 METHOD
 Ast parser_parse_ast(Parser* self, const char* str, i32 len);
 
+METHOD
 Expr* parser_parse_expr(Parser* self, const char* str, i32 len);
 
 CONST_FUNC
@@ -105,9 +105,6 @@ bool parser_is_eof(const Parser* self);
 
 CONST_FUNC
 static inline bool perror_is_ok(ParseError e) { return e >= ParseErr__Ok; }
-
-// METHOD
-// ParseError try_advance(Parser* self);
 
 PURE_FUNC
 Parser parser_new(struct Arena* alloc);

@@ -94,6 +94,9 @@ const char* optype_string(OperatorType op);
 CONST_FUNC
 sslice optype_slice(OperatorType op);
 
+CONST_FUNC
+sslice expr_stmt_type_slice(ExprStmtType t);
+
 typedef i64 StringId;
 typedef i64 RuneId;
 typedef i32 ExprSlot;

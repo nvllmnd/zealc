@@ -65,6 +65,7 @@ void parse_simple_ast(void) {
   Parser p = parser_new(arena);
 
   Ast ast = parser_parse_ast(&p, INPUT, sizeof(INPUT));
+  TEST_ASSERT_TRUE(ast.root->type != ExprStmt__None);
 
   TEST_ASSERT_NOT_NULL(ast.alloc);
   TEST_ASSERT_NOT_NULL(ast.root);

@@ -147,3 +147,63 @@ sslice optype_slice(OperatorType op) {
 
   return OPS[op];
 }
+
+sslice expr_stmt_type_slice(ExprStmtType t) {
+  switch (t) {
+    case ExprStmt__None: {
+        return sslice_static_new("ExprStmt(__NONE__)");
+      } break;
+    case ExprStmt__Block: {
+        return sslice_static_new("ExprStmt(Block)");
+      } break;
+    case ExprStmt__Loop: {
+        return sslice_static_new("ExprStmt(Loop)");
+      } break;
+    case ExprStmt__While: {
+        return sslice_static_new("ExprStmt(While)");
+        
+      } break;
+    case ExprStmt__When: {
+
+        return sslice_static_new("ExprStmt(When)");
+        
+      } break;
+    case ExprStmt__LetDefine: {
+        return sslice_static_new("ExprStmt(Let)");
+        
+      } break;
+    case ExprStmt__ConstDefine: {
+        return sslice_static_new("ExprStmt(Const)");
+        
+      } break;
+    case ExprStmt__VarDefine: {
+        return sslice_static_new("ExprStmt(Var)");
+        
+      } break;
+    case ExprStmt__FuncDefine: {
+        return sslice_static_new("ExprStmt(Function)");
+        
+      } break;
+    case ExprStmt__Return: {
+        return sslice_static_new("ExprStmt(Return)");
+        
+      } break;
+    case ExprStmt__Continue: {
+        return sslice_static_new("ExprStmt(Continue)");
+        
+      } break;
+    case ExprStmt__Break: {
+
+        return sslice_static_new("ExprStmt(Break)");
+        
+      } break;
+    case ExprStmt__AtomExpr: {
+        return sslice_static_new("ExprStmt(Expr)");
+        
+      } break;
+    case ExprStmt__Statement: {
+        return sslice_static_new("ExprStmt(Statement)");
+      } break;
+      break;
+  }
+}

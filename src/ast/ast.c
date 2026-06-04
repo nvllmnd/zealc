@@ -182,7 +182,7 @@ static AstWalkError stringify_expr_stmt(ExprStmt* es, void*) {
     } break;
       break;
     case ExprStmt__None: {
-        LOG_FATAL("EMTPY EXPR STATEMENT");
+        strpad_append("NONE");
       } break;
       break;
   }
@@ -195,7 +195,6 @@ void ast_walk(Ast* self) {
   assert(self->walker.walk_expr);
   assert(self->walker.walk_expr_stmt);
 
-  LOG_DBG("WALKING AST");
   vec_foreach(self->root) {
     self->walker.walk_expr_stmt(iter, self->walker.userdata);
   }
