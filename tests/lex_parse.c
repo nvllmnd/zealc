@@ -7,7 +7,7 @@
 #include "nv/memory/arena.h"
 #include "strpad.h"
 #define LIBNV_DEBUG 1
-#include "nv.h"
+#include "nv/nv.h"
 #include "unity.h"
 
 void setUp(void) {}

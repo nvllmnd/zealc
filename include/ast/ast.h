@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ast/expr.h"
-#include "nv/core.h"
 #include "nv/core/attributes.h"
 
 typedef enum AstWalkError : error {
@@ -53,4 +52,4 @@ void ast_walk(Ast* self);
 
 PURE_FUNC
 METHOD
-sslice ast_stringify(Ast* self);
+sslice ast_stringify(Ast* self, Allocator alloc);

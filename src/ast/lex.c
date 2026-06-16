@@ -8,10 +8,10 @@
 
 #include "ast/token.h"
 #include "core/runes.h"
+#include "nv/core/algo.h"
 #include "nv/core/attributes.h"
 #include "nv/core/log.h"
 #include "nv/core/sslice.h"
-#include "nv/core_types.h"
 
 // static constexpr const char INVALID_CHAR = cast(char, -125);
 // static constexpr const char LEXER_EOF_LITERAL = cast(char, -128);
@@ -110,7 +110,7 @@ static LexError lexer_glyph(LexState* self, TokenType tt, Token* tok);
 PARAMS_NONNULL(1, 2)
 static LexError lexer_string(LexState* self, Token* tok);
 
-static const char* LEX_ERROR_STRINGS[_LexError__Count] = {
+static const char* LEX_ERROR_STRINGS[LEX_ERROR_COUNT] = {
     STRINGIFY(LexError__Ok),
     STRINGIFY(LexError__UnexpectedCharacter),
     STRINGIFY(LexError__UnexpectedCharacterInNumericToken),

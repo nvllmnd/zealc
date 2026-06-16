@@ -9,12 +9,8 @@
 #include "nv/core/attributes.h"
 #include "nv/core/constants.h"
 #include "nv/core/log.h"
-#include "nv/core_types.h"
-#include "nv/iter.h"
-#include "nv/iter/buff.h"
+#include "nv/memory/vmem.h"
 #include "nv/iter/vec.h"
-#include "nv/memory/arena.h"
-#include "nv/memory/static_alloc.h"
 #include "runes.h"
 #include "strpad.h"
 
@@ -65,7 +61,7 @@ RETURNS_NON_NULL
 RETURNS_RESOURCE
 METHOD
 static inline Expr* pexpr_new(Parser* self) {
-  Expr* e = arena_alloc(self->alloc, mlayout_new(Expr));
+  Expr* e = va_allocate(self->alloc, mlayout_new(Expr));
   return pexpect(e, "Parser Arena failed to allocate new Expr!");
 }
 
@@ -174,7 +170,7 @@ static inline Expr* pexpr_vlist_new(Parser* self, i32 count, ...) {
   va_list args;
   va_start(args);
 
-  Vec(Expr) list = vec_new(Expr, count, arena_allocator(self->alloc));
+  Vec(Expr) list = vec_new(Expr, count, va_allocator(self->alloc));
   assert(list);
 
   for (i32 i = 0; i < count; i++) {
@@ -380,7 +376,7 @@ static Expr* primary(Parser* lex);
 [[maybe_unused]]
 METHOD RETURNS_NON_NULL static ExprStmt* block_expr_stmt(Parser* self);
 
-Parser parser_new(Arena* alloc) {
+Parser parser_new(VArena* alloc) {
   assert(alloc);
 
   return make(Parser, .alloc = alloc, .lex = {}, .current = {}, .errors = {});
@@ -485,14 +481,14 @@ Ast parser_parse_ast(Parser* self, const char* str, i32 len) {
   // prime the parser
   parser_preload(self);
 
-  Vec(ExprStmt) exprs = vec_new(ExprStmt, len / 4, arena_allocator(self->alloc));
+  Vec(ExprStmt) exprs = vec_new(ExprStmt, len / 4, va_allocator(self->alloc));
 
   while (!parser_is_eof(self)) {
     ExprStmt expr = statement(self);
     assert(expr.type != ExprStmt__None);
 
     if (vec_is_full(exprs)) {
-      exprs = vec_resize(exprs, vec_len(exprs) * 2, arena_allocator(self->alloc));
+      exprs = vec_resize(exprs, vec_len(exprs) * 2, va_allocator(self->alloc));
     }
 
     vec_push(exprs, expr);

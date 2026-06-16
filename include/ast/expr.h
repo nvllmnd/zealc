@@ -3,8 +3,8 @@
 #include <assert.h>
 
 #include "nv/core/attributes.h"
-#include "nv/core_types.h"
-#include "nv/iter.h"
+#include "nv/core/algo.h"
+#include "nv/iter/vec.h"
 #include "runes.h"
 
 typedef enum ExprType {

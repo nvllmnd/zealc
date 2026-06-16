@@ -8,7 +8,7 @@
 #include "nv/core/attributes.h"
 #include "nv/core/intdefs.h"
 #include "nv/core/sslice.h"
-#include "nv/core_types.h"
+#include "nv/core/algo.h"
 
 typedef enum KeywordType {
   Keyword__None = -1,

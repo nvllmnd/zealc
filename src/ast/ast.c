@@ -4,21 +4,12 @@
 
 #include "ast/expr.h"
 #include "ast/parser.h"
-#include "nv/core.h"
-#include "nv/iter.h"
-#include "nv/iter/buff.h"
-#include "nv/iter/string.h"
 #include "nv/iter/vec.h"
-#include "nv/memory.h"
+#include "nv/memory/memory.h"
 #include "nv/memory/arena.h"
 #include "nv/memory/error.h"
-#include "nv/memory/virt.h"
 #include "strpad.h"
 
-struct StringifyState {
-  String str;
-};
-alias(StringifyState);
 
 PARAMS_NONNULL(1)
 static AstWalkError stringify_expr(Expr* expr, void*) {
@@ -191,7 +182,7 @@ static AstWalkError stringify_expr_stmt(ExprStmt* es, void*) {
       strpad_append("=== AST END ===");
       break;
   }
-  return OK;
+  return (AstWalkError)OK;
 }
 
 void ast_walk(Ast* self) {
@@ -215,7 +206,7 @@ void ast_walk(Ast* self) {
   // }
 }
 
-sslice ast_stringify(Ast* self) {
+sslice ast_stringify(Ast* self, Allocator alloc) {
   assert(self);
   assert(self->root);
 
@@ -224,7 +215,7 @@ sslice ast_stringify(Ast* self) {
   ast_walker_init(self, nullptr, stringify_expr, stringify_expr_stmt);
   ast_walk(self);
 
-  const sslice ast = strpad_end(arena_allocator(self->alloc));
+  const sslice ast = strpad_end(alloc);
 
   return ast;
 }

@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "error.h"
-#include "nv.h"
+#include "nv/nv.h"
 
 typedef enum RuneType { Rune__Empty = 0, Rune__Used, Rune__TypeCount } RuneType;
 typedef struct RuneTable RuneTable;

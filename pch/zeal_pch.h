@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <errno.h>
 
-#include "nv/core_types.h"
+#include "nv/core/algo.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -22,4 +22,3 @@
 #include "nv/core/intdefs.h"
 
 #include "nv/memory/error.h"
-#include "nv/memory/layout.h"

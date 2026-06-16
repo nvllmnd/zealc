@@ -1,46 +1,69 @@
 #include "core/strpad.h"
 
+#include "nv/core/algo.h"
 #include "nv/core/log.h"
 #include "nv/core/spad.h"
 #include "nv/core/sslice.h"
-#include "nv/core_types.h"
 #include "nv/memory/alloc.h"
 #include "nv/memory/virt.h"
 
-static struct SPad {
-  VirtMem* vm;
-  StringPad sp;
-  bool active;
-} SPAD;
+struct Strpad {
+  VMem* vm;
+  StringPad pad;
+};
+alias(Strpad);
+
+static Strpad SPAD = {};
 
 alias(SPad);
 
-static inline bool isinit(const typeof(SPAD)* self) { return is_not_null(self->vm); }
+static inline bool isinit(const Strpad* self) { return is_not_null(self->vm); }
 
-void strpad_init(i32 size_bytes) {
+#define check_init                    \
+  if UNLIKELY (!isinit(&SPAD)) {      \
+    strpad_init(STRPAD_DEFAULT_SIZE); \
+  }
+
+#define check_init_bail(_retval)      \
+  if UNLIKELY (!isinit(&SPAD)) {      \
+    strpad_init(STRPAD_DEFAULT_SIZE); \
+    return (_retval);                 \
+  }
+
+#define check_init_orelse(_else)      \
+  if UNLIKELY (!isinit(&SPAD)) {      \
+    strpad_init(STRPAD_DEFAULT_SIZE); \
+  } else {                            \
+    (_else);                          \
+  }
+#define check_init_return             \
+  if UNLIKELY (!isinit(&SPAD)) {      \
+    strpad_init(STRPAD_DEFAULT_SIZE); \
+    return;                           \
+  }
+void strpad_init(const i64 size_bytes) {
   if LIKELY (is_null(SPAD.vm)) {
-    if UNLIKELY (vmem_init(&SPAD.vm, size_bytes)) {
-      LOG_FATAL("Failed to initialize backing VirtMem for Static StringPad Singleton!");
+    VMem* vm = vmem_new(size_bytes);
+    if UNLIKELY (is_null(vm)) {
+      LOG_FATAL("Failed to initialize static instance of StringPad!");
     }
 
-    SPAD.sp = spad_new(SPAD.vm);
+    auto begin = (char*)vmem_begin(SPAD.vm);
+    auto end = (char*)vmem_end(SPAD.vm);
+
+    SPAD = (Strpad){.vm = vm, .pad = spad_new(begin, end)};
+
+    // spad_build_start(&SPAD.pad);
   }
 }
 
 i32 strpad_length(void) {
-  if UNLIKELY (!isinit(&SPAD)) {
-    strpad_init(STRPAD_DEFAULT_SIZE);
-    return 0;
-  }
+  check_init_bail(0);
 
-  return SPAD.sp.size;
+  return spad_length(&SPAD.pad);
 }
 
 sslice strpad_fappend(const char* fmt, ...) {
-  if UNLIKELY (!isinit(&SPAD)) {
-    strpad_init(STRPAD_DEFAULT_SIZE);
-  }
-
   va_list args = {};
   va_start(args);
 
@@ -51,103 +74,66 @@ sslice strpad_fappend(const char* fmt, ...) {
 }
 
 sslice strpad_vfappend(const char* fmt, va_list args) {
-  if UNLIKELY (!isinit(&SPAD)) {
-    strpad_init(STRPAD_DEFAULT_SIZE);
-  }
-  return spad_vfappend(&SPAD.sp, fmt, args);
+  check_init;
+
+  return spad_vfappend(&SPAD.pad, fmt, args);
 }
 
 sslice strpad_nappend(const char* str, i32 len) {
-  if UNLIKELY (!isinit(&SPAD)) {
-    strpad_init(STRPAD_DEFAULT_SIZE);
-  }
+  check_init;
 
-  return spad_nappend(&SPAD.sp, str, len);
+  return spad_nappend(&SPAD.pad, str, len);
 }
 
 sslice strpad_append(const char* str) {
-  if UNLIKELY (!isinit(&SPAD)) {
-    strpad_init(STRPAD_DEFAULT_SIZE);
-  }
+  check_init;
 
-  return spad_append(&SPAD.sp, str);
+  return spad_append(&SPAD.pad, str);
 }
 
 void strpad_clear_zero(void) {
-  if UNLIKELY (!isinit(&SPAD)) {
-    strpad_init(STRPAD_DEFAULT_SIZE);
-  }
+  check_init_return;
 
-  spad_clear_zeroed(&SPAD.sp);
+  spad_clear_zeroed(&SPAD.pad);
 }
 
 void strpad_clear(void) {
-  if UNLIKELY (!isinit(&SPAD)) {
-    strpad_init(STRPAD_DEFAULT_SIZE);
-  }
+  check_init_return;
 
-  spad_clear(&SPAD.sp);
+  spad_clear(&SPAD.pad);
 }
 
 void strpad_destroy(void) {
   if LIKELY (is_not_null(SPAD.vm)) {
     vmem_destroy(SPAD.vm);
-    memset(&SPAD, 0, sizeof(typeof(SPAD)));
+    memset(&SPAD, 0, sizeof(Strpad));
   }
 }
 
 char strpad_putchar(char c) {
-  if UNLIKELY (!isinit(&SPAD)) {
-    strpad_init(STRPAD_DEFAULT_SIZE);
-  }
+  check_init;
 
-  return spad_putchar(&SPAD.sp, c);
+  return spad_putchar(&SPAD.pad, c);
 }
 void strpad_start(void) {
-  if UNLIKELY (!isinit(&SPAD)) {
-    strpad_init(STRPAD_DEFAULT_SIZE);
-  } else {
-    spad_clear(&SPAD.sp);
-  }
+  check_init_orelse(spad_clear(&SPAD.pad));
 
-  SPAD.active = true;
+  spad_build_start(&SPAD.pad);
 }
 
 sslice strpad_end(Allocator alloc) {
-  if UNLIKELY (!isinit(&SPAD)) {
-    strpad_init(STRPAD_DEFAULT_SIZE);
+  check_init_bail(sslice_empty());
 
-    // LOG_DBG("strpad_end called without previous call to strpad_star");
-    return sslice_empty();
-  }
-
-  if UNLIKELY (!SPAD.active) {
-    LOG_FATAL("strpad_end called without previous call to strpad_start");
-  }
-
-  const sslice sl = spad_clone_string(&SPAD.sp, alloc);
-
-  SPAD.active = false;
-
-  strpad_clear();
-  return sl;
+  return spad_build_end(&SPAD.pad, alloc);
 }
 
-void strpad_ends(char* buff, i32 buff_len) {
-  if UNLIKELY (!isinit(&SPAD)) {
+i64 strpad_ends(char* buff, i32 buff_len) {
+  if UNLIKELY (!isinit(&SPAD) || !SPAD.pad.inuse) {
     strpad_init(STRPAD_DEFAULT_SIZE);
 
     LOG_DBG("strpad_ends called without previous call to strpad_star");
-    return;
+    return -1;
   }
 
-  if UNLIKELY (!SPAD.active) {
-    LOG_DBG("strpad_ends called without previous call to strpad_star");
-    return;
-  }
-
-  spad_clone_into(&SPAD.sp, buff, buff_len);
-
-  spad_clear(&SPAD.sp);
-  SPAD.active = false;
+  return spad_build_end_into(&SPAD.pad, buff, buff_len);
 }

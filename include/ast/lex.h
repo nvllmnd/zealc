@@ -2,41 +2,43 @@
 
 #include "ast/token.h"
 #include "nv/core/attributes.h"
-#include "nv/core_types.h"
+#include "nv/core/algo.h"
+#include "nv/core/intdefs.h"
 
-typedef enum LexError {
+typedef enum LexError : u64 {
   /// No Error! OK!
   LexError__Ok = 0,
-  LexError__UnexpectedCharacter,
-  LexError__UnexpectedCharacterInNumericToken,
-  LexError__UnmatchedDoubleQuotString,
-  LexError__UnmatchedSingleQuotString,
-  LexError__FailedToParseFloat0,
-  LexError__FailedToParseInt0,
-  LexError__FloatParseFail,
-  LexError__IntegerParseFail,
-  LexError__UnexpectedRunePrefix,
+  LEX_OK = LexError__Ok,
+  LexError__UnexpectedCharacter = 1 << 0,
+  LexError__UnexpectedCharacterInNumericToken = 1 << 1,
+  LexError__UnmatchedDoubleQuotString = 1 << 2,
+  LexError__UnmatchedSingleQuotString = 1 << 3,
+  LexError__FailedToParseFloat0 = 1 << 4,
+  LexError__FailedToParseInt0 = 1 << 5,
+  LexError__FloatParseFail = 1 << 6,
+  LexError__IntegerParseFail = 1 << 7,
+  LexError__UnexpectedRunePrefix = 1 << 8,
   /// Lexer encountered a '\' character in an unexpected/illegal location!
-  LexError__UnexpectedEscapeCharacter,
+  LexError__UnexpectedEscapeCharacter = 1 << 9,
   /// Lexer encountered an EOF/end of source string unexpectedly in the middle of tokenization
-  LexError__UnexpectedEndOfSource,
+  LexError__UnexpectedEndOfSource = 1 << 10,
   /// i.e. let x = 1.5.7 // too many '.'!
-  LexError__InvalidFloatingPointLiteral,
+  LexError__InvalidFloatingPointLiteral = 1 << 11,
   /// Invalid identifer: I.E. one that starts with a number: let 7asdf = 5;
-  LexError__IllegalIdentifier,
-  LexError__FailedToOpenFile,
-  LexError__InnerFileIO,
+  LexError__IllegalIdentifier = 1 << 12,
+  LexError__FailedToOpenFile = 1 << 13,
+  LexError__InnerFileIO = 1 << 14,
 
   /// Some inner lexer function expected a TokenType value in a certain range,
   /// but received one out of that range. i.e. a fuction expected a keyword token type (between Token__KeywordStart -
   /// Token__KeywordEnd)
   /// This is most likely a logic error in the lexer implementation
-  LexError__TokenTypeOutOfRange,
+  LexError__TokenTypeOutOfRange = 1 << 15,
 
   /// used internally
-  _LexError__Count,
+  LEX_ERROR_COUNT,
 
-} LexError;
+} HEDLEY_FLAGS LexError;
 
 struct LexState {
   /// slice to source file / eval string being currently lexed

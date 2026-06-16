@@ -7,24 +7,27 @@
 #include "nv/core/constants.h"
 #include "nv/core/intdefs.h"
 
-typedef enum ParseError : error {
-  PARSE_ERROR_MIN_LIMIT = -0x100,
+typedef enum ParseError : uerror {
 
-  ParseErr__InvalidToken = PARSE_ERROR_MIN_LIMIT,
-  ParseErr__InnerLexerError,
-  ParseErr__UnmatchedCurlyBrace,
-  ParseErr__ExpectedBlockExpr,
-  ParseErr__UnexpectedDefineName,
-  ParseErr__InvalidAssignment,
-  ParseErr__UnexpectedEof,
-  ParseErr__Unknown,
-  ParseErr__SourceStreamTooShort,
-  ParseErr__ExpectedIdentifier,
-  PARSE_ERROR_MAX_LIMIT,
   ParseErr__Ok = ZOK,
-  ParseErr__EndOfSourceStream,
 
-} ParseError;
+  PARSE_OK = ParseErr__Ok,
+
+  ParseErr__InvalidToken = 1 << 0,
+  ParseErr__InnerLexerError = 1 << 1,
+  ParseErr__UnmatchedCurlyBrace = 1 << 2,
+  ParseErr__ExpectedBlockExpr = 1 <<3,
+  ParseErr__UnexpectedDefineName = 1 << 4,
+  ParseErr__InvalidAssignment = 1 << 5,
+  ParseErr__UnexpectedEof = 1 <<6,
+  ParseErr__SourceStreamTooShort = 1 << 7,
+  ParseErr__ExpectedIdentifier = 1 << 8,
+  ParseErr__EndOfSourceStream = 1 << 9,
+  ParseErr__Unknown = 1 << 10,
+
+  PARSE_ERROR_COUNT = 11,
+
+} HEDLEY_FLAGS ParseError;
 
 struct ParseErrorInfo {
   i32 id;
@@ -51,7 +54,7 @@ static constexpr const i32 AST_ARENA_CAP_MB = 1024;
 /// use a ~1 page of virtual memory as initial size
 static constexpr const i32 AST_ARENA_INITIAL_SIZE = KILOBYTES(4);
 
-struct Arena;
+struct Vallocator;
 
 /// Zeal language parser.
 /// Parses a source string of Zeal source code into an Abstract Syntax Tree.
@@ -68,7 +71,7 @@ struct Parser {
   /// Arena allocator used to allocate AST nodes.
   /// The AST returned by a successfully parsed source string must live for as long
   /// as the lifetime of this Arena allocator
-  struct Arena* alloc;
+  struct Vallocator* alloc;
   /// LexState used to parse Zeal source string. You can read the
   /// full source string through this [LexState]'s source field
   LexState lex;
@@ -107,7 +110,7 @@ CONST_FUNC
 static inline bool perror_is_ok(ParseError e) { return e >= ParseErr__Ok; }
 
 PURE_FUNC
-Parser parser_new(struct Arena* alloc);
+Parser parser_new(struct Vallocator* alloc);
 
 METHOD
 void parser_print_errors(const Parser* self);

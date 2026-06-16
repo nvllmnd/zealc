@@ -2,7 +2,7 @@
 
 #include "ast/token.h"
 #include "core/runes.h"
-#include "nv.h"
+#include "nv/nv.h"
 #include "nv/core/algo.h"
 #include "unity.h"
 
