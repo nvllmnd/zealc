@@ -1,4 +1,5 @@
 //! Wrapper for our static state around libnv's [StringPad]
+//! Used for buildling short-lived strings. for long-living strings like filepaths, @see [arena_fstring]
 #pragma once
 
 // #include "nv/nv.h"

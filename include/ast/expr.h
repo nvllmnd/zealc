@@ -2,8 +2,8 @@
 
 #include <assert.h>
 
-#include "nv/core/attributes.h"
 #include "nv/core/algo.h"
+#include "nv/core/attributes.h"
 #include "nv/iter/vec.h"
 #include "runes.h"
 
@@ -62,7 +62,8 @@ typedef enum ExprStmtType {
 
   /// @brief when parser encounters a Token__Eof, this variant is returned to signal to the caller
   /// the AST has reached the end of a chunk.
-  /// @details This wont happen every time, but when it does it could be helpful to more clearly signify parsing has finished for a given source stream
+  /// @details This wont happen every time, but when it does it could be helpful to more clearly signify parsing has
+  /// finished for a given source stream
   ExprStmt__AstChunkEnd,
 } ExprStmtType;
 
@@ -238,7 +239,7 @@ struct WhenExprStmt {
   WhenExprStmtType type;
   union {
     struct WhenBranch {
-      Expr* condition;
+      Expr condition;
       Vec(struct ExprStmt) body;
     } branch;
 
@@ -277,7 +278,7 @@ typedef enum DefineStmtType {
 struct DefineStmt {
   DefineStmtType type;
   Rune name;
-  Expr* rhs;
+  Expr rhs;
 };
 typedef struct DefineStmt DefineStmt;
 
@@ -287,7 +288,7 @@ struct ExprStmt {
   union {
     Vec(struct ExprStmt) block;
     struct WhileExprStmt {
-      Expr* condition;
+      Expr condition;
       Vec(struct ExprStmt) body;
     } while_es;
 

@@ -27,7 +27,7 @@ struct Ast {
   /// Arena that owns memory where our AST nodes live.
   /// we track this in this struct in case we need to merge with other ASTs(when i have that built out) or allocate
   /// strings and other such mess
-  struct Arena* alloc;
+  // struct Arena* alloc;
 
   struct AstWalker {
     void* userdata;

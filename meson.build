@@ -38,6 +38,30 @@ inc = include_directories(
   'include/core',
 )
 
+
+core_lib = static_library(
+  'zcore',
+  files(
+    'src/core/runes.c',
+    'src/core/malloc.c',
+    'src/core/strpad.c',
+    'src/core/cargs.c',
+
+  ),
+  include_directories: inc,
+  dependencies: dependencies,
+  install: true,
+  c_pch: 'pch/zeal_pch.h',
+)
+
+core_dep = declare_dependency(
+  include_directories: inc,
+  link_with: core_lib,
+)
+
+dependencies += core_dep
+
+
 ast_lib = static_library(
   'zast',
   files(
@@ -50,7 +74,6 @@ ast_lib = static_library(
   include_directories: inc,
   dependencies: dependencies,
   install: true,
-  pic: true,
   c_pch: 'pch/zeal_pch.h'
 )
 
@@ -61,29 +84,32 @@ ast_dep = declare_dependency(
 
 dependencies += ast_dep
 
-
-core_lib = static_library(
-  'zcore',
+interp_lib = static_library(
+  'zinterp',
   files(
-    'src/core/runes.c',
-
-    'src/core/strpad.c',
-
+    'src/interp/state.c',
   ),
   include_directories: inc,
   dependencies: dependencies,
   install: true,
-  pic: true,
   c_pch: 'pch/zeal_pch.h',
 )
 
-core_dep = declare_dependency(
+interp_dep = declare_dependency(
   include_directories: inc,
-  link_with: core_lib,
+  link_with: interp_lib,
 )
 
-dependencies += core_dep
+dependencies += interp_dep
 
+interp_exe = executable(
+  'zeali',
+  'src/interp/main.c',
+  include_directories: inc,
+  c_pch: 'pch/zeal_pch.h',
+  dependencies: dependencies,
+  install: true,
+)
 
 compiler_lib = static_library(
   'zealc',
@@ -94,7 +120,6 @@ compiler_lib = static_library(
   include_directories: inc,
   dependencies: dependencies,
   install: true,
-  pic: true,
   c_pch: 'pch/zeal_pch.h',
 )
 
@@ -114,6 +139,8 @@ exe = executable(
   dependencies : dependencies,
   install : true,
 )
+
+
 
 
 subdir('tests')

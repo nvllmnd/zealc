@@ -130,16 +130,15 @@ const char* optype_string(OperatorType op) {
 CONST_FUNC
 sslice optype_slice(OperatorType op) {
   static constexpr const sslice OPS[Operator__Count] = {
-      [Operator__Plus] = sslice_static_new("+"),
-      [Operator__Minus] = sslice_static_new("-"),   [Operator__Mul] = sslice_static_new("*"),
-      [Operator__Div] = sslice_static_new("/"),     [Operator__Modulo] = sslice_static_new("%"),
-      [Operator__Concat] = sslice_static_new("++"), [Operator__And] = sslice_static_new("and"),
-      [Operator__Or] = sslice_static_new("or"),     [Operator__BitOr] = sslice_static_new("|"),
-      [Operator__BitAnd] = sslice_static_new("&"),  [Operator__Gt] = sslice_static_new(">"),
-      [Operator__Gte] = sslice_static_new(">="),    [Operator__Lt] = sslice_static_new("<"),
-      [Operator__Lte] = sslice_static_new("<="),    [Operator__Eq] = sslice_static_new("=="),
-      [Operator__NotEq] = sslice_static_new("!="),  [Operator__Not] = sslice_static_new("!"),
-      [Operator__Negate] = sslice_static_new("-"),
+      [Operator__Plus] = sslice_static_new("+"),   [Operator__Minus] = sslice_static_new("-"),
+      [Operator__Mul] = sslice_static_new("*"),    [Operator__Div] = sslice_static_new("/"),
+      [Operator__Modulo] = sslice_static_new("%"), [Operator__Concat] = sslice_static_new("++"),
+      [Operator__And] = sslice_static_new("and"),  [Operator__Or] = sslice_static_new("or"),
+      [Operator__BitOr] = sslice_static_new("|"),  [Operator__BitAnd] = sslice_static_new("&"),
+      [Operator__Gt] = sslice_static_new(">"),     [Operator__Gte] = sslice_static_new(">="),
+      [Operator__Lt] = sslice_static_new("<"),     [Operator__Lte] = sslice_static_new("<="),
+      [Operator__Eq] = sslice_static_new("=="),    [Operator__NotEq] = sslice_static_new("!="),
+      [Operator__Not] = sslice_static_new("!"),    [Operator__Negate] = sslice_static_new("-"),
   };
   if (op <= Operator__Invalid || op >= Operator__Count) {
     return sslice_static_new("Operator Invalid or Out of Bounds!");
@@ -151,63 +150,61 @@ sslice optype_slice(OperatorType op) {
 sslice expr_stmt_type_slice(ExprStmtType t) {
   switch (t) {
     case ExprStmt__None: {
-        return sslice_static_new("ExprStmt(__NONE__)");
-      } break;
+      return sslice_static_new("ExprStmt(__NONE__)");
+    } break;
     case ExprStmt__Block: {
-        return sslice_static_new("ExprStmt(Block)");
-      } break;
+      return sslice_static_new("ExprStmt(Block)");
+    } break;
     case ExprStmt__Loop: {
-        return sslice_static_new("ExprStmt(Loop)");
-      } break;
+      return sslice_static_new("ExprStmt(Loop)");
+    } break;
     case ExprStmt__While: {
-        return sslice_static_new("ExprStmt(While)");
-        
-      } break;
+      return sslice_static_new("ExprStmt(While)");
+
+    } break;
     case ExprStmt__When: {
+      return sslice_static_new("ExprStmt(When)");
 
-        return sslice_static_new("ExprStmt(When)");
-        
-      } break;
+    } break;
     case ExprStmt__LetDefine: {
-        return sslice_static_new("ExprStmt(Let)");
-        
-      } break;
-    case ExprStmt__ConstDefine: {
-        return sslice_static_new("ExprStmt(Const)");
-        
-      } break;
-    case ExprStmt__VarDefine: {
-        return sslice_static_new("ExprStmt(Var)");
-        
-      } break;
-    case ExprStmt__FuncDefine: {
-        return sslice_static_new("ExprStmt(Function)");
-        
-      } break;
-    case ExprStmt__Return: {
-        return sslice_static_new("ExprStmt(Return)");
-        
-      } break;
-    case ExprStmt__Continue: {
-        return sslice_static_new("ExprStmt(Continue)");
-        
-      } break;
-    case ExprStmt__Break: {
+      return sslice_static_new("ExprStmt(Let)");
 
-        return sslice_static_new("ExprStmt(Break)");
-        
-      } break;
+    } break;
+    case ExprStmt__ConstDefine: {
+      return sslice_static_new("ExprStmt(Const)");
+
+    } break;
+    case ExprStmt__VarDefine: {
+      return sslice_static_new("ExprStmt(Var)");
+
+    } break;
+    case ExprStmt__FuncDefine: {
+      return sslice_static_new("ExprStmt(Function)");
+
+    } break;
+    case ExprStmt__Return: {
+      return sslice_static_new("ExprStmt(Return)");
+
+    } break;
+    case ExprStmt__Continue: {
+      return sslice_static_new("ExprStmt(Continue)");
+
+    } break;
+    case ExprStmt__Break: {
+      return sslice_static_new("ExprStmt(Break)");
+
+    } break;
     case ExprStmt__AtomExpr: {
-        return sslice_static_new("ExprStmt(Expr)");
-        
-      } break;
+      return sslice_static_new("ExprStmt(Expr)");
+
+    } break;
     case ExprStmt__Statement: {
-        return sslice_static_new("ExprStmt(Statement)");
-      } break;
+      return sslice_static_new("ExprStmt(Statement)");
+    } break;
       break;
-      case ExprStmt__AstChunkEnd: {
-          return sslice_static_new("Expr(AstEnd)");
-        } break;
-        break;
+    case ExprStmt__AstChunkEnd: {
+      return sslice_static_new("Expr(AstEnd)");
+    } break;
+      break;
   }
 }

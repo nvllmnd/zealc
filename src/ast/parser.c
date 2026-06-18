@@ -9,8 +9,8 @@
 #include "nv/core/attributes.h"
 #include "nv/core/constants.h"
 #include "nv/core/log.h"
-#include "nv/memory/vmem.h"
 #include "nv/iter/vec.h"
+#include "nv/memory/vmem.h"
 #include "runes.h"
 #include "strpad.h"
 
@@ -275,17 +275,17 @@ bool parser_is_eof(const Parser* self) {
   return self->next.type == Token__Eof && self->current.type == Token__Eof;
 }
 
-METHOD
-static inline void parser_push_error(Parser* self, ParseError perror, LexError lerror) {
-  assert(self);
+// METHOD
+// static inline void parser_push_error(Parser* self, ParseError perror, LexError lerror) {
+//   assert(self);
 
-  if (self->errors.len >= MAX_PARSE_ERRORS) {
-    self->errors.len = 0;
-  }
-  self->errors.errs[self->errors.len++] =
-      make(ParseErrorInfo, .id = self->errors.total++, .etype = perror, .lerror = lerror, .loc = self->next.loc,
-           .expr_string = self->next.lexeme, .prev = self->current, .curr = self->next);
-}
+//   if (self->errors.len >= MAX_PARSE_ERRORS) {
+//     self->errors.len = 0;
+//   }
+//   self->errors.errs[self->errors.len++] =
+//       make(ParseErrorInfo, .id = self->errors.total++, .etype = perror, .lerror = lerror, .loc = self->next.loc,
+//            .expr_string = self->next.lexeme, .prev = self->current, .curr = self->next);
+// }
 
 ParseError try_advance(Parser* self) {
   assert(self);
@@ -298,10 +298,9 @@ ParseError try_advance(Parser* self) {
 
   const LexError err = lexer_next(&self->lex, &self->next);
   if UNLIKELY (err != LexError__Ok) {
-    static constexpr const ParseError LERROR = ParseErr__InnerLexerError;
-    parser_push_error(self, LERROR, err);
+    DERROR("Lexer => %s", lex_error_string(err));
 
-    return LERROR;
+    return PARSE_ERROR;
 
   } else {
     return ParseErr__Ok;
@@ -379,18 +378,18 @@ METHOD RETURNS_NON_NULL static ExprStmt* block_expr_stmt(Parser* self);
 Parser parser_new(VArena* alloc) {
   assert(alloc);
 
-  return make(Parser, .alloc = alloc, .lex = {}, .current = {}, .errors = {});
+  return make(Parser, .alloc = alloc, .lex = {}, .current = {});
 }
 
-METHOD
-void parser_print_errors(const Parser* self) {
-  assert(self);
-  for (i32 i = 0; i < self->errors.len; i++) {
-    const ParseErrorInfo* pei = &self->errors.errs[i];
-    println("[%d:%d]#: %d =>  LexError: %s, ParseError: %s, Expression: %.*s,", pei->loc.row, pei->loc.col, pei->id,
-            lex_error_string(pei->lerror), parse_error_string(pei->etype), RSSPREAD(pei->expr_string));
-  }
-}
+// METHOD
+// void parser_print_errors(const Parser* self) {
+//   assert(self);
+//   for (i32 i = 0; i < self->errors.len; i++) {
+//     const ParseErrorInfo* pei = &self->errors.errs[i];
+//     println("[%d:%d]#: %d =>  LexError: %s, ParseError: %s, Expression: %.*s,", pei->loc.row, pei->loc.col, pei->id,
+//             lex_error_string(pei->lerror), parse_error_string(pei->etype), RSSPREAD(pei->expr_string));
+//   }
+// }
 
 #define adv_ok(_p) (perror_is_ok(advance((_p))))
 
@@ -474,7 +473,7 @@ Ast parser_parse_ast(Parser* self, const char* str, i32 len) {
   // clear lex state in case we just finished parsing something else
   self->lex = make_zeroed(LexState);
   // and errors!
-  self->errors = make_zeroed(ParseErrorList);
+  // self->errors = make_zeroed(ParseErrorList);
 
   lexer_init_source(&self->lex, sslice_new(.begin = str, .len = len));
 
@@ -492,10 +491,9 @@ Ast parser_parse_ast(Parser* self, const char* str, i32 len) {
     }
 
     vec_push(exprs, expr);
-
   }
 
-  return (Ast) {.root = exprs, .alloc = self->alloc };
+  return (Ast){.root = exprs};
 }
 
 ParseError parser_preload(Parser* self) {
@@ -750,12 +748,10 @@ Expr* primary(Parser* self) {
 }
 
 ExprStmt statement(Parser* self) {
-
   ExprStmt es = {};
   switch (peektype(self)) {
-    case Token__Eof:{
-        
-      } break;
+    case Token__Eof: {
+    } break;
     case Token__Let: {
       expect_adv(self);
       es = define_stmt(self, Define__Let);
@@ -820,7 +816,7 @@ ExprStmt statement(Parser* self) {
 static ExprStmt block_stmt(Parser* self) {
   assert(self);
 
-  Vec(ExprStmt) stmts = vec_new(ExprStmt, 24, arena_allocator(self->alloc));
+  Vec(ExprStmt) stmts = vec_new(ExprStmt, 24, va_allocator(self->alloc));
   while (!parser_is_eof(self)) {
     if UNLIKELY (peektype(self) == Token__CloseBrace) {
       expect_adv(self);
@@ -828,7 +824,7 @@ static ExprStmt block_stmt(Parser* self) {
     }
 
     if UNLIKELY (vec_is_full(stmts)) {
-      stmts = vec_resize(stmts, vec_len(stmts) * 2, arena_allocator(self->alloc));
+      stmts = vec_resize(stmts, vec_len(stmts) * 2, va_allocator(self->alloc));
       assert(stmts);
     }
 
@@ -880,12 +876,12 @@ static ExprStmt define_stmt(Parser* self, DefineStmtType type) {
       }
       t;
     });
-    const DefineStmt def = (DefineStmt){.name = ident_name, .rhs = initializer, .type = type};
+    const DefineStmt def = (DefineStmt){.name = ident_name, .rhs = *initializer, .type = type};
 
     return (ExprStmt){.type = etype, .def = def};
   } else {
     LOG_FATAL("Expected Identifier, got: %s", tokentype_string(peektype(self)));
-    parser_push_error(self, ParseErr__ExpectedIdentifier, LexError__Ok);
+    // parser_push_error(self, ParseErr__ExpectedIdentifier, LexError__Ok);
   }
 }
 
@@ -895,7 +891,7 @@ Expr* parser_parse_expr(Parser* self, const char* str, i32 len) {
   // clear lex state in case we just finished parsing something else
   self->lex = make_zeroed(LexState);
   // and errors!
-  self->errors = make_zeroed(ParseErrorList);
+  // self->errors = make_zeroed(ParseErrorList);
 
   lexer_init_source(&self->lex, sslice_new(.begin = str, .len = len));
 
@@ -913,7 +909,7 @@ ExprStmt parser_parse_expr_stmt(Parser* self, const char* str, i32 len) {
   // clear lex state in case we just finished parsing something else
   self->lex = make_zeroed(LexState);
   // and errors!
-  self->errors = make_zeroed(ParseErrorList);
+  // self->errors = make_zeroed(ParseErrorList);
 
   lexer_init_source(&self->lex, sslice_new(.begin = str, .len = len));
 
@@ -942,17 +938,17 @@ static void statement_string_impl(const ExprStmt* es) {
     } break;
     case ExprStmt__LetDefine: {
       strpad_fappend("(let %.*s ", RSSPREAD(es->def.name.name));
-      expression_string_impl(es->def.rhs);
+      expression_string_impl(&es->def.rhs);
       strpad_append(")");
     } break;
     case ExprStmt__ConstDefine: {
     } break;
       strpad_fappend("(const %.*s ", RSSPREAD(es->def.name.name));
-      expression_string_impl(es->def.rhs);
+      expression_string_impl(&es->def.rhs);
       strpad_append(")");
     case ExprStmt__VarDefine: {
       strpad_fappend("(var %.*s ", RSSPREAD(es->def.name.name));
-      expression_string_impl(es->def.rhs);
+      expression_string_impl(&es->def.rhs);
       strpad_append(")");
     } break;
     case ExprStmt__FuncDefine: {
@@ -976,8 +972,8 @@ static void statement_string_impl(const ExprStmt* es) {
     } break;
       break;
     case ExprStmt__AstChunkEnd: {
-        strpad_append("=== AST END ===");
-      } break;
+      strpad_append("=== AST END ===");
+    } break;
       break;
   }
 }
@@ -1079,26 +1075,30 @@ void expression_string_impl(const Expr* expr) {
   }
 }
 
+static VArena PRINT_ALLOC = {};
+
 void print_expression(const Expr* expr) {
-  static Arena* a = nullptr;
-  if (is_null(a)) {
-    a = arena_new(MEGABYTES(4), KILOBYTES(16));
+  if UNLIKELY (is_zeroed(&PRINT_ALLOC)) {
+    PRINT_ALLOC = va_new(MB(16));
+  } else {
+    va_clear(&PRINT_ALLOC);
   }
 
-  const sslice sl = expression_string(expr, arena_allocator(a));
+  const sslice sl = expression_string(expr, va_allocator(&PRINT_ALLOC));
 
-  println("%d, %.*s", sl.len, RSSPREAD(sl));
+  println("%li, %.*s", sl.len, RSSPREAD(sl));
 }
 
 void print_statement(const ExprStmt* expr) {
-  static Arena* a = nullptr;
-  if (is_null(a)) {
-    a = arena_new(MEGABYTES(4), KILOBYTES(16));
+  if UNLIKELY (is_zeroed(&PRINT_ALLOC)) {
+    PRINT_ALLOC = va_new(MB(16));
+  } else {
+    va_clear(&PRINT_ALLOC);
   }
 
-  const sslice sl = statement_string(expr, arena_allocator(a));
+  const sslice sl = statement_string(expr, va_allocator(&PRINT_ALLOC));
 
-  println("%d, %.*s", sl.len, RSSPREAD(sl));
+  println("%li, %.*s", sl.len, RSSPREAD(sl));
 }
 
 sslice expression_string(const Expr* expr, Allocator alloc) {

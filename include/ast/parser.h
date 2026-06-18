@@ -13,19 +13,20 @@ typedef enum ParseError : uerror {
 
   PARSE_OK = ParseErr__Ok,
 
-  ParseErr__InvalidToken = 1 << 0,
-  ParseErr__InnerLexerError = 1 << 1,
-  ParseErr__UnmatchedCurlyBrace = 1 << 2,
-  ParseErr__ExpectedBlockExpr = 1 <<3,
-  ParseErr__UnexpectedDefineName = 1 << 4,
-  ParseErr__InvalidAssignment = 1 << 5,
-  ParseErr__UnexpectedEof = 1 <<6,
-  ParseErr__SourceStreamTooShort = 1 << 7,
-  ParseErr__ExpectedIdentifier = 1 << 8,
-  ParseErr__EndOfSourceStream = 1 << 9,
-  ParseErr__Unknown = 1 << 10,
+  PARSE_ERROR = 1,
+  ParseErr__InvalidToken = 1 << 1,
+  ParseErr__InnerLexerError = 1 << 2,
+  ParseErr__UnmatchedCurlyBrace = 1 << 3,
+  ParseErr__ExpectedBlockExpr = 1 <<4,
+  ParseErr__UnexpectedDefineName = 1 << 5,
+  ParseErr__InvalidAssignment = 1 << 6,
+  ParseErr__UnexpectedEof = 1 <<7,
+  ParseErr__SourceStreamTooShort = 1 << 8,
+  ParseErr__ExpectedIdentifier = 1 << 9,
+  ParseErr__EndOfSourceStream = 1 << 10,
+  ParseErr__Unknown = 1 << 11,
 
-  PARSE_ERROR_COUNT = 11,
+  PARSE_ERROR_COUNT = 12,
 
 } HEDLEY_FLAGS ParseError;
 
@@ -84,7 +85,7 @@ struct Parser {
   /// parser
   Token next;
   /// List of ParseErrors, currently this is a small ringbuffer
-  ParseErrorList errors;
+  // ParseErrorList errors;
 };
 alias(Parser);
 
