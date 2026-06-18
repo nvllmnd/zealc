@@ -375,6 +375,8 @@ static Expr* primary(Parser* lex);
 [[maybe_unused]]
 METHOD RETURNS_NON_NULL static ExprStmt* block_expr_stmt(Parser* self);
 
+void parser_reset(Parser* self) { *self = (Parser){.alloc = self->alloc}; }
+
 Parser parser_new(VArena* alloc) {
   assert(alloc);
 

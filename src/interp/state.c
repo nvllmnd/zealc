@@ -21,8 +21,11 @@ struct ParseFrame {
 };
 alias(ParseFrame);
 
+
+
 struct Interp {
   ParseFrame frame;
+  IError err;
   struct {
     VArena ast;
     VArena env;
@@ -36,6 +39,8 @@ static Interp Self = {};
 static constexpr const i64 DEFAULT_AST_CAPACITY = MB(128);
 static constexpr const i64 DEFAULT_ENV_CAPACITY = GB(4);
 static constexpr const i64 DEFAULT_FRAME_TREES_CAP = 24;
+
+IError interp_get_error(void) { return Self.err; }
 
 static inline const char* load_file_string(const char* path, i64* size_out) {
   FILE* file = fopen(path, "r");
@@ -68,12 +73,16 @@ static inline const char* load_file_string(const char* path, i64* size_out) {
   dest[size] = 0;
   assert(fclose(file) != -1);
   return dest;
-
 }
 
 /// @details this function must be called first prior to any other interp_* function calls
 /// failure to do so will trigger a runtime panic
 void interp_init(const InterpOpts opts) {
+  if UNLIKELY (!is_zeroed(&Self)) {
+    DERROR("Interpreter already initialized!");
+    return;
+  }
+
   const i64 ast_cap = opts.ast_capacity <= 0 ? DEFAULT_AST_CAPACITY : opts.ast_capacity;
   const i64 env_cap = opts.env_capacity <= 0 ? DEFAULT_ENV_CAPACITY : opts.env_capacity;
 
@@ -104,6 +113,7 @@ void interp_init(const InterpOpts opts) {
   }
 
   Self = (Interp){.frame = {.trees = trees}, .allocs = {.ast = ast, .env = env, .source = source}};
+  Self.frame.p = parser_new(&Self.allocs.ast);
 }
 
 /// @brief Returns an array of dynamic size, containing all parsed AST trees in this parse frame
@@ -118,7 +128,7 @@ void interp_pframe_reset(void) {
   va_clear(&Self.allocs.ast);
   va_clear(&Self.allocs.env);
   va_clear(&Self.allocs.source);
-  Self.frame.p = (Parser){};
+  parser_reset(&Self.frame.p);
 }
 
 /// @brief Prase a file and return a parsed AST.
@@ -127,14 +137,13 @@ void interp_pframe_reset(void) {
 //
 /// @returns zeroed AST structure in case of error, otherwise a valid AST
 Ast interp_parse_file(const char* path) {
-
   i64 file_size = 0;
   const char* source = load_file_string(path, &file_size);
   if (is_null(source)) {
     return zeroed(Ast);
   }
 
-  return parser_parse_ast(&Self.frame.p, source, file_size);
+  return interp_parse_string(source, file_size);
 }
 
 /// @brief Parse a zeal source string and return a parsed AST
@@ -142,7 +151,8 @@ Ast interp_parse_file(const char* path) {
 /// [interp_load_ast], or just call [ionterp_load_string] directly
 /// @returns zeroed AST structure in case of error, otherwise a valid AST
 Ast interp_parse_string(const char* str, i32 len) {
-  return parser_parse_ast(&Self.frame.p, str,  len);
+  parser_reset(&Self.frame.p);
+  return parser_parse_ast(&Self.frame.p, str, len);
 }
 
 void interp_load_ast(Ast ast) {
@@ -157,10 +167,89 @@ void interp_load_ast(Ast ast) {
 }
 
 /// @brief Parse a zeal file and load the AST into the interpreters inteeral vec of parsed AST trees
-ZError interp_load_file(const char* path) PARAMS_NONNULL(1);
+IError interp_load_file(const char* path) {}
 
 /// @brief Parse a zeal source string and load the AST into the interpreters inteeral vec of parsed AST trees
-ZError interp_load_string(const char* str, i32 len) PARAMS_NONNULL(1);
+IError interp_load_string(const char* str, i32 len) {}
 
 /// @brief Tells zeal interpreter instance to evalate (execute) all the parsed ASTs it currently has loaded
-ZError interp_evaluate(void);
+IError interp_evaluate(void) {
+  IError err = IOK;
+  vec_for(&Self.frame.trees) {
+    (void)interp_eval_ast(Self.frame.trees[i]);
+    err |= Self.err;
+  }
+  vec_clear(&Self.frame.trees);
+  return err;
+}
+
+PARAMS_NONNULL(1)
+static IValue eval_expression(const Expr* expr) {
+  switch (expr->type) {
+    case Expr__Invalid: {
+      LOG_FATAL("Encountered Invalid Expression!");
+    } break;
+    case Expr__Unit: {
+      return ival_unit();
+    } break;
+    case Expr__Bool: {
+      return ival_bool(expr->val.b);
+    } break;
+    case Expr__Int: {
+      return ival_int(expr->val.i);
+    } break;
+    case Expr__Float: {
+      return ival_float(expr->val.f);
+    } break;
+    case Expr__StringLiteral: {
+      return ival_stringlit(expr->val.rune);
+    } break;
+    case Expr__String: {
+      return ival_string(expr->val.rune);
+    } break;
+    case Expr__Ident: {
+      return ival_ident(expr->val.rune);
+    } break;
+    case Expr__Rune: {
+      return ival_rune(expr->val.rune);
+    } break;
+    case Expr__List: {
+      const i64 cap = vec_capacity(expr->val.list);
+      const i64 len = vec_len(expr->val.list);
+      Vec(IValue) vals = vec_new(IValue, cap, va_allocator(&Self.allocs.ast));
+      for (i32 i = 0; i < len; i++) {
+        const IValue v = eval_expression(&expr->val.list[i]);
+        vec_push(vals, v);
+      }
+      return (IValue){.type = IValue__List, .data = {.list = vals}};
+
+    } break;
+    case Expr__Assignment: {
+      const IValue lhs = eval_expression(expr->val.assign.lhs);
+      assert(lhs.type == IValue__Ident);
+      const IValue rhs = eval_expression(expr->val.assign.rhs);
+
+      const Rune ident = lhs.data.string;
+
+    } break;
+    case Expr__Call: {
+    } break;
+    case Expr__BinOp: {
+    } break;
+    case Expr__UnaryOp: {
+    } break;
+    case Expr__PrintCall: {
+    } break;
+      break;
+  }
+}
+
+static IValue eval_statement(const ExprStmt* stmt) {}
+
+IValue interp_eval_expr(const Expr* expr) {}
+
+IValue interp_eval_stmt(const ExprStmt* stmt) {}
+
+IValue interp_eval_ast(Ast ast) {
+  vec_foreach(ast.root) { IValue val = eval_statement(iter); }
+}

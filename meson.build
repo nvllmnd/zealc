@@ -88,6 +88,7 @@ interp_lib = static_library(
   'zinterp',
   files(
     'src/interp/state.c',
+    'src/interp/env.c',
   ),
   include_directories: inc,
   dependencies: dependencies,

@@ -17,10 +17,10 @@ typedef enum ParseError : uerror {
   ParseErr__InvalidToken = 1 << 1,
   ParseErr__InnerLexerError = 1 << 2,
   ParseErr__UnmatchedCurlyBrace = 1 << 3,
-  ParseErr__ExpectedBlockExpr = 1 <<4,
+  ParseErr__ExpectedBlockExpr = 1 << 4,
   ParseErr__UnexpectedDefineName = 1 << 5,
   ParseErr__InvalidAssignment = 1 << 6,
-  ParseErr__UnexpectedEof = 1 <<7,
+  ParseErr__UnexpectedEof = 1 << 7,
   ParseErr__SourceStreamTooShort = 1 << 8,
   ParseErr__ExpectedIdentifier = 1 << 9,
   ParseErr__EndOfSourceStream = 1 << 10,
@@ -115,6 +115,9 @@ Parser parser_new(struct Vallocator* alloc);
 
 METHOD
 void parser_print_errors(const Parser* self);
+
+/// @brief resets parser back to default state. keeping the allocator pointer it was created with
+void parser_reset(Parser* self);
 
 METHOD
 sslice expression_string(const Expr* expr, Allocator alloc);

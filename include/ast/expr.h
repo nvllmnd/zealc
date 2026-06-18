@@ -117,6 +117,7 @@ typedef enum PrintType {
 /// Each root expression node lives on stack, which points to the rest of the AST
 struct Expr {
   union {
+    nullptr_t unit;
     bool b;
     i64 i;
     f64 f;
@@ -171,7 +172,7 @@ CONST_FUNC
 static inline Expr expr_invalid(void) { return (Expr){.type = Expr__Invalid, .val = {}}; }
 
 CONST_FUNC
-static inline Expr expr_unit(void) { return (Expr){.type = Expr__Unit, .val = {}}; }
+static inline Expr expr_unit(void) { return (Expr){.type = Expr__Unit, .val = {.unit = nullptr}}; }
 
 CONST_FUNC
 static inline Expr expr_bool(bool val) { return (Expr){.type = Expr__Bool, .val.b = val}; }
