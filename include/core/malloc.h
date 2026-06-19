@@ -38,6 +38,20 @@ Allocator global_allocator(void);
 
 void memory_destroy(void);
 
+#ifndef ZEAL_OVERRIDE_MALLOC
+#define ZEAL_OVERRIDE_MALLOC 1
+#endif
+
+#if ZEAL_OVERRIDE_MALLOC == 1
+
+#define aligned_alloc(_align, _size) (alloc((_size), (_align)))
+#define malloc(_size) (alloc((_size), 1))
+#define calloc(_size, _count) (zalloc((size) * (_count)))
+#define realloc(_ptr, _new_size) (reallocate((_ptr), mlayout_bytes(1), mlayout_bytes((_new_size))))
+#define free(_ptr)
+
+#endif
+
 void cfree(void* ptr);
 
 [[gnu::alloc_size(1)]] [[gnu::alloc_align(2)]]
@@ -48,3 +62,8 @@ void* ccalloc(isize size, isize count) RETURNS_NON_NULL;
 
 PURE_FUNC
 Allocator libc_allocator(void);
+
+#define new(T) ((typeof(T)*)alloc(sizeof(T), alignof(T)))
+#define array_new(T, _n) ((typeof(T)*)alloc(sizeof(T) * (_n), alignof(T)))
+
+#define alloc_vec(T, _cap) (vec_new(T, (_cap), global_allocator()))
