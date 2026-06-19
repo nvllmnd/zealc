@@ -4,6 +4,9 @@
 #include <string.h>
 
 #include "error.h"
+#include "nv/common.h"
+#include "nv/memory/alloc.h"
+#include "nv/memory/vmem.h"
 #include "nv/nv.h"
 
 typedef enum RuneType { Rune__Empty = 0, Rune__Used, Rune__TypeCount } RuneType;
@@ -31,9 +34,10 @@ struct RuneTable {
   Vec(RuneEntry) entries;
   i32 entries_count;
 
-  Arena* alloc;
+  VArena alloc;
 };
 
+static bool isinit = false;
 static RuneTable RT = {};
 /// [RuneTable]'s inner [Arena] allocator. chaching it here so we dont have to keep creating one everytime we need to
 /// allocate or resize our entry vec
@@ -42,8 +46,6 @@ static Allocator RT_ARENA = {};
 static constexpr const i32 RT_ARENA_INIT_CAPACITY = KILOBYTES(8);
 static constexpr const i32 RUNETAB_DEFAULT_CAP = GIGABYTES(1);
 
-static inline bool isinit(const RuneTable* self) { return self && is_not_null(self->alloc); }
-
 ZError runetab_init(i32 entry_len, i32 storage_size) {
   assert(entry_len > 0);
   assert(storage_size > 0);
@@ -51,26 +53,26 @@ ZError runetab_init(i32 entry_len, i32 storage_size) {
   // we are already initialized if we have a non-null pointer to an Arena already
   // this funciton is the only place where there is a call to [arena_new], so if we have a non-null pointer to an
   // [Arena], we had to have already called this function before
-  if UNLIKELY (is_not_null(RT.alloc)) {
+  if UNLIKELY (isinit) {
     return ZOK;
   }
 
-  Arena* arena = arena_new(storage_size, RT_ARENA_INIT_CAPACITY);
-  if UNLIKELY (is_null(arena)) {
+  VArena arena = va_new(storage_size);
+  if UNLIKELY (is_none(&arena)) {
     LOG_DBG(FILE_FMT " :: Failed to create new Arena of size %d bytes and init capacity: %d",
             FILE_FMT_ARGS(RuneTable, storage_size, RT_ARENA_INIT_CAPACITY));
     return ZError__FailedNewOrInitArenaAlloc;
   }
 
   RT.alloc = arena;
-  RT_ARENA = arena_allocator(RT.alloc);
+  RT_ARENA = va_allocator(&RT.alloc);
   RT.entries = vec_new(RuneEntry, entry_len, RT_ARENA);
   RT.entries_count = 0;
 
   if UNLIKELY (is_null(RT.entries)) {
     LOG_DBG(FILE_FMT " :: Arena allocator failed to allocate RuneEntry array of size: %d bytes!",
             FILE_FMT_ARGS(RuneTable, (i32)sizeof(RuneEntry) * entry_len));
-    arena_destroy(RT.alloc);
+    va_destroy(&RT.alloc);
     memset(&RT, 0, sizeof(RuneTable));
     memset(&RT_ARENA, 0, sizeof(Allocator));
 
@@ -79,14 +81,16 @@ ZError runetab_init(i32 entry_len, i32 storage_size) {
     return ZError__ArenaAllocatorOOM;
   }
 
+  isinit = true;
+
   vec_grow_to_cap(RT.entries);
 
   return ZOK;
 }
 
 i32 runetab_grow(i32 new_entry_len) {
-  if UNLIKELY (!isinit(&RT)) {
-    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != OK) {
+  if UNLIKELY (!isinit) {
+    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != ZOK) {
       LOG_FATAL("Failed to init Runetable!");
     }
   }
@@ -128,8 +132,8 @@ i32 runetab_grow(i32 new_entry_len) {
 }
 
 f32 runetab_load_factor(void) {
-  if UNLIKELY (!isinit(&RT)) {
-    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != OK) {
+  if UNLIKELY (!isinit) {
+    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != ZOK) {
       LOG_FATAL("Failed to init Runetable!");
     }
   }
@@ -139,8 +143,8 @@ f32 runetab_load_factor(void) {
 }
 
 Rune runetab_add(sslice name) {
-  if UNLIKELY (!isinit(&RT)) {
-    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != OK) {
+  if UNLIKELY (!isinit) {
+    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != ZOK) {
       LOG_FATAL("Failed to init Runetable!");
     }
   }
@@ -193,7 +197,7 @@ Rune runetab_add(sslice name) {
     // we only have to worry about insertion here, since we do a full lookup above with the call to runetab_lookup
     // so we know if we got here, we did not find an entry at this hashed index
     if (entry->type == Rune__Empty) {
-      const char* s = arena_strndup(RT.alloc, name.begin, name.len);
+      const char* s = va_strndup(&RT.alloc, name.begin, name.len);
       const sslice sl = sslice_new(s, name.len);
       entry->name = sl;
       entry->type = Rune__Used;
@@ -220,8 +224,8 @@ bool runetab_has_str(const char* string, i32 string_len) {
   assert(string);
   assert(string_len > 0);
 
-  if UNLIKELY (!isinit(&RT)) {
-    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != OK) {
+  if UNLIKELY (!isinit) {
+    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != ZOK) {
       LOG_FATAL("Failed to init Runetable!");
     }
     return false;
@@ -236,8 +240,8 @@ bool runetab_get(sslice name, Rune* out) {
   assert(name.begin);
   assert(name.len > 0);
 
-  if UNLIKELY (!isinit(&RT)) {
-    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != OK) {
+  if UNLIKELY (!isinit) {
+    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != ZOK) {
       LOG_FATAL("Failed to init Runetable!");
     }
     return false;
@@ -259,8 +263,8 @@ bool runetab_get(sslice name, Rune* out) {
 }
 
 Rune runetab_lookup(sslice name) {
-  if UNLIKELY (!isinit(&RT)) {
-    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != OK) {
+  if UNLIKELY (!isinit) {
+    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != ZOK) {
       LOG_FATAL("Failed to init Runetable!");
     }
     return RUNE_NONE;
@@ -309,10 +313,11 @@ Rune runetab_lookup(sslice name) {
 }
 
 void runetab_destroy(void) {
-  if (is_not_null(RT.alloc)) {
-    arena_destroy(RT.alloc);
+  if (isinit) {
+    va_destroy(&RT.alloc);
     memset(&RT, 0, sizeof(RuneTable));
     memset(&RT_ARENA, 0, sizeof(Allocator));
+    isinit = false;
   }
 }
 
@@ -367,22 +372,22 @@ void runetab_rehash_entries(RuneTable* self, const Vec(RuneEntry) old_entries) {
 }
 
 void runetab_clear(void) {
-  if UNLIKELY (!isinit(&RT)) {
-    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != OK) {
+  if UNLIKELY (!isinit) {
+    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != ZOK) {
       LOG_FATAL("Failed to init Runetable!");
     }
     return;
   }
 
   assert(allocator_is_ok(RT_ARENA));
-  arena_clear(RT.alloc);
+  va_clear(&RT.alloc);
 
   RT.entries = nullptr;
 }
 
 void runetab_print_entries(void) {
-  if UNLIKELY (!isinit(&RT)) {
-    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != OK) {
+  if UNLIKELY (!isinit) {
+    if UNLIKELY (runetab_init(512, RUNETAB_DEFAULT_CAP) != ZOK) {
       LOG_FATAL("Failed to init Runetable!");
     }
     return;

@@ -21,8 +21,6 @@ struct ParseFrame {
 };
 alias(ParseFrame);
 
-
-
 struct Interp {
   ParseFrame frame;
   IError err;
@@ -167,10 +165,29 @@ void interp_load_ast(Ast ast) {
 }
 
 /// @brief Parse a zeal file and load the AST into the interpreters inteeral vec of parsed AST trees
-IError interp_load_file(const char* path) {}
+IError interp_load_file(const char* path) {
+  isize file_size = 0;
+  const char* source = load_file_string(path, &file_size);
+  if (is_null(source)) {
+    return IError__FileLoad;
+  }
+  Ast ast = interp_parse_string(source, file_size);
+  if (is_zeroed(&ast)) {
+    return IError__Parser;
+  }
+  interp_load_ast(ast);
+  return IOK;
+}
 
 /// @brief Parse a zeal source string and load the AST into the interpreters inteeral vec of parsed AST trees
-IError interp_load_string(const char* str, i32 len) {}
+IError interp_load_string(const char* str, i32 len) {
+  Ast ast = interp_parse_string(str, len);
+  if (is_zeroed(&ast)) {
+    return IError__Parser;
+  }
+  interp_load_ast(ast);
+  return IOK;
+}
 
 /// @brief Tells zeal interpreter instance to evalate (execute) all the parsed ASTs it currently has loaded
 IError interp_evaluate(void) {

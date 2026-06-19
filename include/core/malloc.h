@@ -11,35 +11,40 @@
 #include "nv/core/intdefs.h"
 #include "nv/memory/alloc.h"
 
-ZError arena_init(isize size);
+ZError memory_init(isize size);
 
 [[gnu::alloc_size(1)]] [[gnu::alloc_align(2)]]
-void* arena_allocate(isize size, isize align) RETURNS_NON_NULL;
+void* alloc(isize size, isize align) RETURNS_NON_NULL;
 
 [[gnu::alloc_size(1)]] [[gnu::alloc_align(2)]]
-void* arena_zallocate(isize size, isize align) RETURNS_NON_NULL;
+void* zalloc(isize size, isize align) RETURNS_NON_NULL;
 
-bool arena_resize(void* ptr, Layout old, Layout new) PARAMS_NONNULL(1);
+bool mresize(void* ptr, Layout old, Layout new) PARAMS_NONNULL(1);
 
-void* arena_reallocate(void* ptr, Layout old, Layout new) PARAMS_NONNULL(1) RETURNS_NON_NULL;
+void* reallocate(void* ptr, Layout old, Layout new) PARAMS_NONNULL(1) RETURNS_NON_NULL;
 
 [[gnu::alloc_size(2)]]
-char* arena_strndup(const char* str, isize len) PARAMS_NONNULL(1) RETURNS_NON_NULL;
+char* dupnstring(const char* str, isize len) PARAMS_NONNULL(1) RETURNS_NON_NULL;
 
 RETURNS_NON_NULL
-char* arena_strdup(const char* str) PARAMS_NONNULL(1);
+char* dupstring(const char* str) PARAMS_NONNULL(1);
 
 HEDLEY_PRINTF_FORMAT(2, 3)
-char* arena_fstring(isize* size_out, const char* fmt, ...) PARAMS_NONNULL(2) RETURNS_NON_NULL;
+char* fstring(isize* size_out, const char* fmt, ...) PARAMS_NONNULL(2) RETURNS_NON_NULL;
 
-char* arena_vfstring(isize* size_out, const char* fmt, va_list args) RETURNS_NON_NULL;
+char* vfstring(isize* size_out, const char* fmt, va_list args) RETURNS_NON_NULL;
 
-void arena_destroy(void);
+Allocator global_allocator(void);
+
+void memory_destroy(void);
 
 void cfree(void* ptr);
 
 [[gnu::alloc_size(1)]] [[gnu::alloc_align(2)]]
 void* cmalloc(isize size, isize align) RETURNS_NON_NULL;
 
-[[gnu::alloc_size(1, 2)]] [[gnu::alloc_align(3)]]
-void* ccalloc(isize size, isize count, isize align) RETURNS_NON_NULL;
+[[gnu::alloc_size(1, 2)]]
+void* ccalloc(isize size, isize count) RETURNS_NON_NULL;
+
+PURE_FUNC
+Allocator libc_allocator(void);

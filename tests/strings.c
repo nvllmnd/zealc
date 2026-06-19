@@ -2,14 +2,14 @@
 
 #include "ast/token.h"
 #include "core/runes.h"
-#include "nv/nv.h"
 #include "nv/core/algo.h"
+#include "nv/nv.h"
 #include "unity.h"
 
 void setUp(void) {
   const ZError err = runetab_init(MEGABYTES(1), GIGABYTES(1));
   if (err != ZOK) {
-    LOG("Failed to initialize RuneTable! ERR: %d", err);
+    DERR("Failed to initialize RuneTable! ERR: %li", err);
   }
 }
 
