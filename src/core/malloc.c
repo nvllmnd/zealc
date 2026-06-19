@@ -126,7 +126,10 @@ void* libc_allocate(void*, Layout layout) { return aligned_alloc(layout.align, l
 void* libc_zallocate(void*, Layout layout) { return calloc(1, layout.size); }
 bool libc_resize(void*, void*, Layout, Layout) { return false; }
 void* libc_reallocate(void*, void* ptr, Layout, Layout new) { return realloc(ptr, new.size); }
-void libc_free(void*, void* ptr) { free(ptr); }
+void libc_free(void*, void* ptr) {
+  (void)ptr;
+  free(ptr);
+}
 
 static const AllocVTable LIBC_VT = {.allocate = libc_allocate,
                                     .zallocate = libc_zallocate,

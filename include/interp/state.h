@@ -9,6 +9,7 @@
 #include "runes.h"
 
 typedef enum IValueType {
+  IValue__InvalidUnknown = -1,
   IValue__Unit = 0,
   IValue__Bool,
   IValue__Int64,
