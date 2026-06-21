@@ -18,6 +18,8 @@ alias(EnvEntry);
 
 static constexpr const isize ENV_INIT_CAPACITY = 32;
 
+// TODO: Finish this implementation. For right now im just going to linearly scan each Env Scope to lookup
+// definitions at runtime, This is not ideal AT ALL, but fine for getting things working
 // TODO: Add growing when load factor is >= 0.75, as well as rehashing entries when resizing
 
 Env env_root_new(void) {

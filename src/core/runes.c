@@ -283,6 +283,7 @@ Rune runetab_lookup(sslice name) {
   }
 
   const u64 hash = fnv_hash64(name.begin, name.len);
+
   const i32 elen = vec_len(RT.entries);
   const u64 mask = elen - 1;
 

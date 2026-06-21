@@ -5,11 +5,9 @@
 #include "ast/expr.h"
 #include "ast/parser.h"
 #include "nv/iter/vec.h"
-#include "nv/memory/memory.h"
-#include "nv/memory/arena.h"
 #include "nv/memory/error.h"
+#include "nv/memory/memory.h"
 #include "strpad.h"
-
 
 PARAMS_NONNULL(1)
 static AstWalkError stringify_expr(Expr* expr, void*) {
@@ -191,7 +189,7 @@ void ast_walk(Ast* self) {
   assert(self->walker.walk_expr);
   assert(self->walker.walk_expr_stmt);
 
-  for(i32 i = 0; i < vec_len(self->root); i++) {
+  for (i32 i = 0; i < vec_len(self->root); i++) {
     ExprStmt* e = &self->root[i];
     self->walker.walk_expr_stmt(e, self->walker.userdata);
   }
